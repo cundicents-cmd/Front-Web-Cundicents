@@ -1,0 +1,847 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>Gestión por Áreas · Encargados</title>
+    <link rel="icon" type="image/png" href="{% static 'img/log.png' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* ===== RESET Y BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #fff8d6;
+            display: flex;
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+
+        /* ===== SIDEBAR ===== */
+        .sidebar {
+            width: 18vw;
+            min-height: 100vh;
+            min-height: 100dvh;
+            background-color: #d71920;
+            color: white;
+            padding: 2vh 1.2vw;
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.2vh 0;
+            margin-bottom: 2.5vh;
+            width: 100%;
+        }
+
+        .logo img {
+            width: 10vw;
+            max-width: 120px;
+            height: auto;
+            aspect-ratio: 1/1;
+            object-fit: contain;
+        }
+
+        .menu {
+            list-style: none;
+            width: 100%;
+            margin-top: 1vh;
+        }
+
+        .menu li {
+            margin-bottom: 1.2vh;
+        }
+
+        .menu a {
+            display: block;
+            padding: 1.8vh 1.2vw;
+            color: white;
+            text-decoration: none;
+            font-size: clamp(0.8rem, 1.2vw, 1.2rem);
+            font-weight: 600;
+            border-radius: 0.8rem;
+            transition: 0.2s ease;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+
+        .menu a:hover,
+        .menu a.active {
+            background-color: #f5c400;
+            color: #a80000;
+        }
+
+        /* ===== CONTENIDO PRINCIPAL ===== */
+        .content {
+            margin-left: 18vw;
+            width: 82vw;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: 4vh 4vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            background-color: white;
+            border-left: 0.6vw solid #d71920;
+            padding: 2.8vh 2.8vw;
+            border-radius: 1.2rem;
+            margin-bottom: 2.5vh;
+            box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.08);
+        }
+
+        .header h1 {
+            color: #d71920;
+            font-size: clamp(1.6rem, 3.2vw, 3.6rem);
+            margin-bottom: 0.6vh;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #444;
+            font-size: clamp(1rem, 1.4vw, 1.5rem);
+        }
+
+        /* ===== LISTADO EN COLUMNAS (GRID) ===== */
+        .list-container {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2vh 1.8vw;
+            flex: 1 1 auto;
+        }
+
+        /* Cada área: encabezado + lista de personas */
+        .area-card {
+            background-color: white;
+            border-radius: 1.2rem;
+            border-left: 0.5vw solid #f5c400;
+            box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.07);
+            overflow: hidden;
+            transition: 0.15s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .area-card:hover {
+            box-shadow: 0 0.8vh 2.4vh rgba(0, 0, 0, 0.12);
+        }
+
+        .area-header {
+            background-color: #faf3e0;
+            padding: 1.4vh 1.5vw;
+            font-size: clamp(1.1rem, 1.6vw, 1.8rem);
+            font-weight: 700;
+            color: #1e1e1e;
+            border-bottom: 2px solid #e3d6b6;
+            display: flex;
+            align-items: center;
+            gap: 0.6vw;
+            flex-shrink: 0;
+        }
+
+        .area-header i {
+            color: #d71920;
+            font-size: clamp(1rem, 1.4vw, 1.6rem);
+        }
+
+        .area-body {
+            padding: 1.2vh 1.2vw 1.8vh 1.2vw;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8vh;
+            flex: 1;
+        }
+
+        /* Cada persona (item) */
+        .person-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.1vh;
+            padding: 1vh 1vw;
+            border-radius: 0.8rem;
+            background-color: #fefcf7;
+            border: 1px solid #f0e6c5;
+            transition: 0.1s ease;
+            cursor: pointer;
+        }
+
+        .person-item:hover {
+            background-color: #fcf5e5;
+            border-color: #d6c9a8;
+        }
+
+        .person-info .nombre {
+            font-size: clamp(0.9rem, 1.2vw, 1.3rem);
+            font-weight: 600;
+            color: #1e1e1e;
+        }
+
+        .person-info .cargo {
+            font-size: clamp(0.75rem, 0.9vw, 1rem);
+            color: #555;
+        }
+
+        .person-info .email {
+            font-size: clamp(0.7rem, 0.8vw, 0.95rem);
+            color: #7a6a4a;
+        }
+
+        .person-badge {
+            background: #ecf3fa;
+            color: #1e3c5a;
+            padding: 0.15vh 0.8vw;
+            border-radius: 2rem;
+            font-size: clamp(0.65rem, 0.8vw, 0.9rem);
+            font-weight: 500;
+            display: inline-block;
+            align-self: flex-start;
+            margin-top: 0.2vh;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(3px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 1.5rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: white;
+            max-width: 550px;
+            width: 100%;
+            border-radius: 1.8rem;
+            padding: 2rem 2.2rem;
+            box-shadow: 0 25px 50px -8px rgba(0, 0, 0, 0.3);
+            position: relative;
+            animation: modalFade 0.25s ease;
+            border: 1px solid #f0e6c5;
+        }
+
+        @keyframes modalFade {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f0e6c5;
+            padding-bottom: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .modal-header h3 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #2c2416;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .modal-header h3 i {
+            color: #d71920;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #7a6a4a;
+            transition: 0.2s;
+            line-height: 1;
+        }
+
+        .modal-close:hover {
+            color: #d71920;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .modal-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px dashed #efe7d0;
+        }
+
+        .modal-item .label {
+            font-weight: 600;
+            color: #5e4b2b;
+        }
+
+        .modal-item .value {
+            color: #1f1a10;
+            text-align: right;
+            max-width: 60%;
+        }
+
+        .modal-footer {
+            margin-top: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 0.8rem;
+        }
+
+        .modal-footer .btn-cerrar {
+            background-color: #e8e0cc;
+            border: none;
+            padding: 0.5rem 1.8rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .modal-footer .btn-cerrar:hover {
+            background-color: #d6c9a8;
+        }
+
+        .modal-footer .btn-modificar {
+            background-color: #1a5fb4;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.8rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .modal-footer .btn-modificar:hover {
+            background-color: #0e4a92;
+        }
+
+        .modal-footer .btn-eliminar {
+            background-color: #b02b2b;
+            color: white;
+            border: none;
+            padding: 0.5rem 1.8rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .modal-footer .btn-eliminar:hover {
+            background-color: #8f1f1f;
+        }
+
+        .modal-footer .btn-group {
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        /* ===== BOTÓN FLOTANTE "AGREGAR ENCARGADO" ===== */
+        .btn-flotante {
+            position: fixed;
+            bottom: 2.5rem;
+            right: 2.5rem;
+            background-color: #1f8b4c;
+            color: white;
+            border: none;
+            padding: 0.9rem 1.8rem;
+            border-radius: 3rem;
+            font-weight: 700;
+            font-size: 1rem;
+            box-shadow: 0 10px 25px rgba(31, 139, 76, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s ease;
+            z-index: 999;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.4px;
+        }
+
+        .btn-flotante:hover {
+            background-color: #146b3a;
+            transform: scale(1.04);
+            box-shadow: 0 14px 30px rgba(31, 139, 76, 0.5);
+        }
+
+        .btn-flotante i {
+            font-size: 1.2rem;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 992px) {
+            .list-container {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 2vh 1.8vw;
+            }
+        }
+
+        @media (max-width: 820px) {
+            .sidebar {
+                width: 22vw;
+                padding: 2vh 1.6vw;
+            }
+
+            .content {
+                margin-left: 22vw;
+                width: 78vw;
+                padding: 3vh 3vw;
+            }
+
+            .logo img {
+                width: 12vw;
+            }
+
+            .menu a {
+                font-size: clamp(0.7rem, 1.4vw, 1rem);
+                padding: 1.6vh 0.8vw;
+            }
+
+            .area-header {
+                padding: 1.2vh 2vw;
+                font-size: clamp(1rem, 1.8vw, 1.6rem);
+            }
+
+            .person-item {
+                padding: 0.8vh 1.6vw;
+            }
+
+            .person-info .nombre {
+                font-size: clamp(0.85rem, 1.4vw, 1.2rem);
+            }
+
+            .modal-card {
+                max-width: 90%;
+                padding: 1.5rem;
+            }
+
+            .btn-flotante {
+                bottom: 2rem;
+                right: 2rem;
+                padding: 0.8rem 1.5rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .sidebar {
+                width: 28vw;
+                padding: 1.6vh 1.2vw;
+            }
+
+            .content {
+                margin-left: 28vw;
+                width: 72vw;
+                padding: 2.4vh 2.8vw;
+            }
+
+            .logo img {
+                width: 14vw;
+                max-width: 80px;
+            }
+
+            .menu a {
+                font-size: clamp(0.6rem, 1.8vw, 0.9rem);
+                padding: 1.4vh 0.6vw;
+                border-radius: 0.6rem;
+            }
+
+            .list-container {
+                grid-template-columns: 1fr;
+                gap: 2vh;
+            }
+
+            .area-header {
+                padding: 1.2vh 3vw;
+                font-size: clamp(1rem, 3.5vw, 1.5rem);
+            }
+
+            .area-body {
+                padding: 1vh 3vw 1.8vh 3vw;
+            }
+
+            .person-item {
+                padding: 1vh 3vw;
+            }
+
+            .person-info .nombre {
+                font-size: clamp(1rem, 3.5vw, 1.4rem);
+            }
+
+            .header {
+                padding: 2vh 3vw;
+                border-left-width: 1vw;
+            }
+
+            .header h1 {
+                font-size: clamp(1.2rem, 4.5vw, 2rem);
+            }
+
+            .header p {
+                font-size: clamp(0.8rem, 2vw, 1rem);
+            }
+
+            .modal-card {
+                padding: 1.2rem;
+            }
+
+            .modal-item {
+                flex-direction: column;
+                gap: 0.2rem;
+            }
+
+            .modal-item .value {
+                text-align: left;
+                max-width: 100%;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .modal-footer .btn-group {
+                flex-direction: column;
+                gap: 0.6rem;
+            }
+
+            .btn-flotante {
+                bottom: 1.5rem;
+                right: 1.5rem;
+                padding: 0.7rem 1.2rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .sidebar {
+                width: 32vw;
+                padding: 1.2vh 0.8vw;
+            }
+
+            .content {
+                margin-left: 32vw;
+                width: 68vw;
+                padding: 2vh 2vw;
+            }
+
+            .menu a {
+                font-size: clamp(0.5rem, 2vw, 0.75rem);
+                padding: 1.2vh 0.4vw;
+            }
+
+            .logo img {
+                width: 16vw;
+            }
+
+            .area-header {
+                font-size: clamp(0.9rem, 4vw, 1.3rem);
+            }
+
+            .person-info .nombre {
+                font-size: clamp(0.9rem, 4vw, 1.2rem);
+            }
+
+            .btn-flotante {
+                bottom: 1rem;
+                right: 1rem;
+                padding: 0.5rem 1rem;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="{% static 'img/log.png' %}" alt="Logo institucional">
+        </div>
+        <ul class="menu">
+            <li><a href="inicio_m.html">Inicio</a></li>
+            <li><a href="sectores_m.html">Sectores</a></li>
+            <li><a href="encargados_m.html" class="active">Encargados</a></li>
+            <li><a href="#">Incidentes</a></li>
+            <li><a href="reportes_m.html">Reportes</a></li>
+            <li><a href="configuracion_m.html">Configuración</a></li>
+        </ul>
+    </aside>
+
+    <!-- ===== CONTENIDO PRINCIPAL ===== -->
+    <main class="content">
+        <div class="header">
+            <h1>Áreas de Gestión</h1>
+            <p>Encargados por área · Seguridad y convivencia, Accidente, Gestión del riesgo, Infraestructura, Servicios
+                públicos, Ambiental, Salud pública</p>
+        </div>
+
+        <!-- LISTADO DE ÁREAS EN COLUMNAS -->
+        <div class="list-container" id="listContainer">
+            <!-- Se inyecta con JavaScript -->
+        </div>
+    </main>
+
+    <!-- ===== BOTÓN FLOTANTE ===== -->
+    <button class="btn-flotante">
+        <i class="fas fa-plus"></i> Agregar encargado
+    </button>
+
+    <!-- ===== MODAL ===== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-circle"></i> Detalle del encargado</h3>
+                <button class="modal-close" id="modalCloseBtn">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Datos dinámicos -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cerrar" id="modalCerrarBtn">Cerrar</button>
+                <div class="btn-group">
+                    <button class="btn-modificar" id="modalModificarBtn">Modificar</button>
+                    <button class="btn-eliminar" id="modalEliminarBtn">Eliminar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            // ===== DATOS: áreas y personas =====
+            const areas = [
+                { nombre: 'Seguridad y convivencia', icono: 'fa-shield-halved' },
+                { nombre: 'Accidente', icono: 'fa-car-crash' },
+                { nombre: 'Gestión del riesgo', icono: 'fa-triangle-exclamation' },
+                { nombre: 'Infraestructura', icono: 'fa-road' },
+                { nombre: 'Servicios públicos', icono: 'fa-water' },
+                { nombre: 'Ambiental', icono: 'fa-leaf' },
+                { nombre: 'Salud pública', icono: 'fa-heart-pulse' }
+            ];
+
+            const personasPorArea = [
+                [
+                    {
+                        nombre: 'María Fernanda López', cargo: 'Coordinadora de Convivencia', email: 'maria.lopez@seguridad.gov',
+                        telefono: '300-123-4567', area: 'Seguridad y convivencia'
+                    },
+                    {
+                        nombre: 'Carlos Andrés Ruiz', cargo: 'Analista de Seguridad', email: 'carlos.ruiz@seguridad.gov',
+                        telefono: '301-234-5678', area: 'Seguridad y convivencia'
+                    }
+                ],
+                [
+                    {
+                        nombre: 'Laura Valentina Gómez', cargo: 'Jefe de Atención de Accidentes', email: 'laura.gomez@accidente.gov',
+                        telefono: '302-345-6789', area: 'Accidente'
+                    },
+                    {
+                        nombre: 'Jorge Enrique Díaz', cargo: 'Especialista en Vialidad', email: 'jorge.diaz@accidente.gov',
+                        telefono: '303-456-7890', area: 'Accidente'
+                    }
+                ],
+                [
+                    {
+                        nombre: 'Ana María Rojas', cargo: 'Directora de Gestión del Riesgo', email: 'ana.rojas@riesgo.gov',
+                        telefono: '304-567-8901', area: 'Gestión del riesgo'
+                    },
+                    {
+                        nombre: 'Luis Eduardo Páez', cargo: 'Coordinador de Prevención', email: 'luis.paez@riesgo.gov',
+                        telefono: '305-678-9012', area: 'Gestión del riesgo'
+                    }
+                ],
+                [
+                    {
+                        nombre: 'Miguel Ángel Sánchez', cargo: 'Jefe de Infraestructura', email: 'miguel.sanchez@infra.gov',
+                        telefono: '306-789-0123', area: 'Infraestructura'
+                    },
+                    {
+                        nombre: 'Diana Carolina Ríos', cargo: 'Ingeniera Civil', email: 'diana.rios@infra.gov',
+                        telefono: '307-890-1234', area: 'Infraestructura'
+                    }
+                ],
+                [
+                    {
+                        nombre: 'José Alberto Vargas', cargo: 'Director de Servicios Públicos', email: 'jose.vargas@servicios.gov',
+                        telefono: '308-901-2345', area: 'Servicios públicos'
+                    },
+                    {
+                        nombre: 'Claudia Patricia Jiménez', cargo: 'Coordinadora de Agua Potable', email: 'claudia.jimenez@servicios.gov',
+                        telefono: '309-012-3456', area: 'Servicios públicos'
+                    }
+                ],
+                [
+                    {
+                        nombre: 'Sofía Elena Rivas', cargo: 'Jefe de Gestión Ambiental', email: 'sofia.rivas@ambiental.gov',
+                        telefono: '310-123-4567', area: 'Ambiental'
+                    },
+                    {
+                        nombre: 'David Fernando Castro', cargo: 'Coordinador de Residuos', email: 'david.castro@ambiental.gov',
+                        telefono: '311-234-5678', area: 'Ambiental'
+                    }
+                ],
+                [
+                    {
+                        nombre: 'Andrea Milena Quintero', cargo: 'Directora de Salud Pública', email: 'andrea.quintero@salud.gov',
+                        telefono: '312-345-6789', area: 'Salud pública'
+                    },
+                    {
+                        nombre: 'Ricardo Alberto Mejía', cargo: 'Coordinador de Epidemiología', email: 'ricardo.mejia@salud.gov',
+                        telefono: '313-456-7890', area: 'Salud pública'
+                    }
+                ]
+            ];
+
+            // Referencias DOM
+            const container = document.getElementById('listContainer');
+
+            // Modal
+            const modalOverlay = document.getElementById('modalOverlay');
+            const modalBody = document.getElementById('modalBody');
+            const modalCloseBtn = document.getElementById('modalCloseBtn');
+            const modalCerrarBtn = document.getElementById('modalCerrarBtn');
+            const modalModificarBtn = document.getElementById('modalModificarBtn');
+            const modalEliminarBtn = document.getElementById('modalEliminarBtn');
+
+            let personaActual = null;
+
+            // ===== FUNCIÓN PARA ABRIR MODAL =====
+            function abrirModal(persona) {
+                personaActual = persona;
+                modalBody.innerHTML = `
+                    <div class="modal-item"><span class="label">Nombre</span><span class="value"><strong>${persona.nombre}</strong></span></div>
+                    <div class="modal-item"><span class="label">Cargo</span><span class="value">${persona.cargo}</span></div>
+                    <div class="modal-item"><span class="label">Correo</span><span class="value">${persona.email}</span></div>
+                    <div class="modal-item"><span class="label">Teléfono</span><span class="value">${persona.telefono}</span></div>
+                    <div class="modal-item"><span class="label">Área</span><span class="value">${persona.area}</span></div>
+                `;
+                modalOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function cerrarModal() {
+                modalOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+                personaActual = null;
+            }
+
+            // Eventos de cierre del modal
+            modalCloseBtn.addEventListener('click', cerrarModal);
+            modalCerrarBtn.addEventListener('click', cerrarModal);
+            modalOverlay.addEventListener('click', function (e) {
+                if (e.target === modalOverlay) cerrarModal();
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape') cerrarModal();
+            });
+
+            // Botones de acción del modal (sin funcionalidad real)
+            modalModificarBtn.addEventListener('click', function () {
+                alert('[Simulación] Botón Modificar presionado (azul).');
+            });
+            modalEliminarBtn.addEventListener('click', function () {
+                alert('[Simulación] Botón Eliminar presionado (rojo).');
+            });
+
+            // ===== FUNCIÓN PARA RENDERIZAR ÁREAS Y PERSONAS =====
+            function render() {
+                let html = '';
+
+                areas.forEach((area, idx) => {
+                    const personas = personasPorArea[idx] || [];
+
+                    html += `
+                        <div class="area-card" data-area="${area.nombre}">
+                            <div class="area-header">
+                                <i class="fas ${area.icono}"></i>
+                                ${area.nombre}
+                            </div>
+                            <div class="area-body">
+                    `;
+
+                    personas.forEach(p => {
+                        html += `
+                            <div class="person-item" data-nombre="${p.nombre}" data-cargo="${p.cargo}" data-email="${p.email}" data-telefono="${p.telefono}" data-area="${p.area}">
+                                <div class="person-info">
+                                    <span class="nombre">${p.nombre}</span>
+                                    <span class="cargo">${p.cargo}</span>
+                                    <span class="email">${p.email}</span>
+                                </div>
+                                <span class="person-badge"><i class="fas fa-phone"></i> ${p.telefono}</span>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+
+                // Asignar evento de clic a cada persona para abrir modal
+                document.querySelectorAll('.person-item').forEach(item => {
+                    item.addEventListener('click', function () {
+                        const persona = {
+                            nombre: this.dataset.nombre,
+                            cargo: this.dataset.cargo,
+                            email: this.dataset.email,
+                            telefono: this.dataset.telefono,
+                            area: this.dataset.area
+                        };
+                        abrirModal(persona);
+                    });
+                });
+            }
+
+            // ===== RENDER INICIAL =====
+            render();
+        })();
+    </script>
+
+</body>
+
+</html>

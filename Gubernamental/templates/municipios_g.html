@@ -1,0 +1,1432 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>Sistema de Incidentes · Municipios y su administrador</title>
+    <link rel="icon" type="image/png" href="{% static 'img/log.png' %}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #fff8d6;
+            display: flex;
+            min-height: 100vh;
+            min-height: 100dvh;
+        }
+
+        /* ========== SIDEBAR ========== */
+        .sidebar {
+            width: 18vw;
+            min-height: 100vh;
+            min-height: 100dvh;
+            background-color: #d71920;
+            color: white;
+            padding: 2vh 1.2vw;
+            position: fixed;
+            left: 0;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 1.2vh 0;
+            margin-bottom: 2.5vh;
+            width: 100%;
+        }
+
+        .logo img {
+            width: 10vw;
+            max-width: 120px;
+            height: auto;
+            aspect-ratio: 1/1;
+            object-fit: contain;
+        }
+
+        .menu {
+            list-style: none;
+            width: 100%;
+            margin-top: 1vh;
+        }
+
+        .menu li {
+            margin-bottom: 1.2vh;
+        }
+
+        .menu a {
+            display: block;
+            padding: 1.8vh 1.2vw;
+            color: white;
+            text-decoration: none;
+            font-size: clamp(0.8rem, 1.2vw, 1.2rem);
+            font-weight: 600;
+            border-radius: 0.8rem;
+            transition: 0.2s ease;
+            text-align: center;
+            letter-spacing: 0.3px;
+        }
+
+        .menu a:hover,
+        .menu a.active {
+            background-color: #f5c400;
+            color: #a80000;
+        }
+
+        /* ========== CONTENIDO PRINCIPAL ========== */
+        .content {
+            margin-left: 18vw;
+            width: 82vw;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: 4vh 4vw;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ========== HEADER ========== */
+        .header {
+            background-color: white;
+            border-left: 0.6vw solid #d71920;
+            padding: 2.8vh 2.8vw;
+            border-radius: 1.2rem;
+            margin-bottom: 2.5vh;
+            box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.08);
+        }
+
+        .header h1 {
+            color: #d71920;
+            font-size: clamp(1.6rem, 3.2vw, 3.6rem);
+            margin-bottom: 0.6vh;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #444;
+            font-size: clamp(1rem, 1.4vw, 1.5rem);
+        }
+
+        /* ========== BARRA DE BÚSQUEDA ========== */
+        .search-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8vw;
+            background: white;
+            padding: 1.6vh 2vw;
+            border-radius: 1.2rem;
+            box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.07);
+            margin-bottom: 3vh;
+            align-items: center;
+            border-left: 0.4vw solid #f5c400;
+        }
+
+        .search-bar input {
+            flex: 1 1 200px;
+            padding: 1.2vh 1.2vw;
+            border: 1.5px solid #e0d6b5;
+            border-radius: 2rem;
+            font-size: clamp(0.9rem, 1.2vw, 1.1rem);
+            background: #fefcf3;
+            outline: none;
+            transition: 0.2s;
+            min-width: 140px;
+        }
+
+        .search-bar input:focus {
+            border-color: #d71920;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(215, 25, 32, 0.1);
+        }
+
+        .search-bar button {
+            background-color: #d71920;
+            color: white;
+            border: none;
+            padding: 1.2vh 2.2vw;
+            border-radius: 3rem;
+            font-weight: 600;
+            font-size: clamp(0.9rem, 1.1vw, 1.1rem);
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.4vw;
+            white-space: nowrap;
+            letter-spacing: 0.3px;
+            box-shadow: 0 0.3vh 0.8vh rgba(215, 25, 32, 0.25);
+        }
+
+        .search-bar button:hover {
+            background-color: #b01218;
+            transform: scale(1.02);
+        }
+
+        /* ========== LISTADO DE MUNICIPIOS ========== */
+        .list-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.8vh;
+            flex: 1 1 auto;
+        }
+
+        .list-item {
+            background-color: white;
+            padding: 2.2vh 2.2vw;
+            border-radius: 1.2rem;
+            border-left: 0.5vw solid #f5c400;
+            box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.07);
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            transition: 0.15s ease;
+        }
+
+        .list-item:hover {
+            box-shadow: 0 0.8vh 2.4vh rgba(0, 0, 0, 0.12);
+            transform: scale(1.002);
+        }
+
+        .item-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2vh;
+            flex: 1 1 180px;
+        }
+
+        .item-info .nombre {
+            font-size: clamp(1.2rem, 1.8vw, 2rem);
+            font-weight: 700;
+            color: #1e1e1e;
+            letter-spacing: -0.3px;
+        }
+
+        .item-info .detalle {
+            font-size: clamp(0.85rem, 1.1vw, 1.2rem);
+            color: #555;
+        }
+
+        .item-admin {
+            font-size: clamp(0.85rem, 1vw, 1.1rem);
+            color: #1e3c5a;
+            background: #ecf3fa;
+            padding: 0.2vh 1vw;
+            border-radius: 2rem;
+            display: inline-block;
+            margin-top: 0.3vh;
+            font-weight: 500;
+        }
+
+        .item-admin.sin-asignar {
+            background: #f5e6e6;
+            color: #a80000;
+        }
+
+        /* ===== BOTONES ADMIN ===== */
+        .admin-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6vw;
+            align-items: center;
+            margin-top: 0.6vh;
+        }
+
+        .btn-admin {
+            border: none;
+            padding: 0.5vh 1.2vw;
+            border-radius: 2rem;
+            font-weight: 600;
+            font-size: clamp(0.7rem, 0.9vw, 0.95rem);
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+            background: #f0f0f0;
+            color: #222;
+        }
+
+        .btn-admin.agregar {
+            background: #1f7a3d;
+            color: white;
+        }
+
+        .btn-admin.agregar:hover {
+            background: #15632f;
+            transform: scale(1.04);
+        }
+
+        /* NUEVO: variante "actualizar" */
+        .btn-admin.actualizar {
+            background: #1e3c5a;
+            color: white;
+        }
+
+        .btn-admin.actualizar:hover {
+            background: #16293d;
+            transform: scale(1.04);
+        }
+
+        .btn-admin.eliminar {
+            background: #b02b2b;
+            color: white;
+            margin-left: 0.8vw;
+        }
+
+        .btn-admin.eliminar:hover {
+            background: #8f1f1f;
+            transform: scale(1.04);
+        }
+
+        .btn-admin.eliminar-antes {
+            background: #d47b28;
+            color: white;
+        }
+
+        .btn-admin.eliminar-antes:hover {
+            background: #b8661e;
+            transform: scale(1.04);
+        }
+
+        .btn-admin.eliminar-antes:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* ===== MENSAJE SIN RESULTADOS ===== */
+        #sinResultados {
+            border-left-color: #d71920;
+            background: #fff5f5;
+            color: #a80000;
+            text-align: center;
+            justify-content: center;
+        }
+
+        #sinResultados .item-info {
+            align-items: center;
+            text-align: center;
+        }
+
+        /* ========== BOTÓN FLOTANTE ========== */
+        .fab-agregar {
+            position: fixed;
+            bottom: 3vh;
+            right: 3vw;
+            background-color: #1f7a3d;
+            color: white;
+            border: none;
+            border-radius: 3rem;
+            padding: 1.6vh 2.4vw;
+            font-weight: 700;
+            font-size: clamp(0.9rem, 1.2vw, 1.2rem);
+            cursor: pointer;
+            box-shadow: 0 0.6vh 2vh rgba(31, 122, 61, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 0.6vw;
+            transition: 0.2s ease;
+            z-index: 1000;
+            white-space: nowrap;
+            letter-spacing: 0.4px;
+        }
+
+        .fab-agregar:hover {
+            background-color: #15632f;
+            transform: scale(1.05);
+            box-shadow: 0 0.8vh 2.8vh rgba(31, 122, 61, 0.5);
+        }
+
+        /* ========== MODAL ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(2px);
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+
+        .modal-overlay.activo {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 1.6rem;
+            padding: 3.6vh 3.2vw;
+            width: 90%;
+            max-width: 520px;
+            box-shadow: 0 1.2vh 4vh rgba(0, 0, 0, 0.3);
+            border-left: 0.8vw solid #1f7a3d;
+            animation: aparecer 0.25s ease;
+        }
+
+        @keyframes aparecer {
+            from {
+                opacity: 0;
+                transform: scale(0.95) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal h2 {
+            color: #1f7a3d;
+            font-size: clamp(1.4rem, 2.4vw, 2.2rem);
+            margin-bottom: 2.2vh;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+        }
+
+        .modal label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.8vh;
+            font-size: clamp(0.9rem, 1.1vw, 1.1rem);
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 1.4vh 1.6vw;
+            border: 1.5px solid #d0c8b0;
+            border-radius: 1rem;
+            font-size: clamp(0.95rem, 1.2vw, 1.2rem);
+            background: #fefcf3;
+            outline: none;
+            transition: 0.2s;
+            margin-bottom: 2.8vh;
+        }
+
+        .modal input:focus {
+            border-color: #1f7a3d;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(31, 122, 61, 0.12);
+        }
+
+        .modal-acciones {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1.2vw;
+            flex-wrap: wrap;
+        }
+
+        .modal-acciones button {
+            border: none;
+            padding: 1.4vh 2.8vw;
+            border-radius: 3rem;
+            font-weight: 700;
+            font-size: clamp(0.9rem, 1.1vw, 1.1rem);
+            cursor: pointer;
+            transition: 0.2s;
+            letter-spacing: 0.3px;
+        }
+
+        .btn-guardar {
+            background-color: #1f7a3d;
+            color: white;
+            box-shadow: 0 0.3vh 1vh rgba(31, 122, 61, 0.3);
+        }
+
+        .btn-guardar:hover {
+            background-color: #15632f;
+            transform: scale(1.03);
+        }
+
+        .btn-cancelar {
+            background-color: #e8e0cc;
+            color: #333;
+        }
+
+        .btn-cancelar:hover {
+            background-color: #d6cdb4;
+            transform: scale(1.03);
+        }
+
+        /* ========== TOASTS (MENSAJES FLOTANTES) ========== */
+        #toastContainer {
+            position: fixed;
+            top: 2vh;
+            right: 2vw;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2vh;
+            z-index: 3000;
+            max-width: 90vw;
+            width: 380px;
+            pointer-events: none;
+        }
+
+        .toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 1vw;
+            background: white;
+            border-radius: 1rem;
+            padding: 1.6vh 1.4vw;
+            box-shadow: 0 0.8vh 2.4vh rgba(0, 0, 0, 0.18);
+            border-left: 0.4vw solid #d71920;
+            animation: entrarToast 0.3s ease;
+            pointer-events: auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .toast.saliendo {
+            animation: salirToast 0.3s ease forwards;
+        }
+
+        .toast .icono {
+            font-size: clamp(1.4rem, 2vw, 1.8rem);
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+        .toast .contenido {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.2vh;
+        }
+
+        .toast .titulo {
+            font-weight: 700;
+            font-size: clamp(0.95rem, 1.1vw, 1.05rem);
+            color: #1e1e1e;
+        }
+
+        .toast .texto {
+            font-size: clamp(0.82rem, 1vw, 0.95rem);
+            color: #555;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+
+        .toast .cerrar {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: #999;
+            font-size: 1.2rem;
+            line-height: 1;
+            padding: 0 0.3vw;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toast .cerrar:hover {
+            color: #333;
+        }
+
+        /* Variantes por tipo */
+        .toast.success {
+            border-left-color: #1f7a3d;
+        }
+
+        .toast.success .titulo {
+            color: #1f7a3d;
+        }
+
+        .toast.error {
+            border-left-color: #d71920;
+        }
+
+        .toast.error .titulo {
+            color: #d71920;
+        }
+
+        .toast.warning {
+            border-left-color: #d47b28;
+        }
+
+        .toast.warning .titulo {
+            color: #b8661e;
+        }
+
+        .toast.info {
+            border-left-color: #1e3c5a;
+        }
+
+        .toast.info .titulo {
+            color: #1e3c5a;
+        }
+
+        /* Barra de progreso */
+        .toast .barra {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            width: 100%;
+            background: rgba(0, 0, 0, 0.08);
+        }
+
+        .toast .barra span {
+            display: block;
+            height: 100%;
+            width: 100%;
+            background: currentColor;
+            transform-origin: left;
+            animation: barraProgreso 4s linear forwards;
+        }
+
+        .toast.success .barra span {
+            background: #1f7a3d;
+        }
+
+        .toast.error .barra span {
+            background: #d71920;
+        }
+
+        .toast.warning .barra span {
+            background: #d47b28;
+        }
+
+        .toast.info .barra span {
+            background: #1e3c5a;
+        }
+
+        @keyframes entrarToast {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes salirToast {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+        }
+
+        @keyframes barraProgreso {
+            from {
+                transform: scaleX(1);
+            }
+
+            to {
+                transform: scaleX(0);
+            }
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 820px) {
+            .sidebar {
+                width: 22vw;
+                padding: 2vh 1.6vw;
+            }
+
+            .content {
+                margin-left: 22vw;
+                width: 78vw;
+                padding: 3vh 3vw;
+            }
+
+            .logo img {
+                width: 12vw;
+            }
+
+            .menu a {
+                font-size: clamp(0.7rem, 1.4vw, 1rem);
+                padding: 1.6vh 0.8vw;
+            }
+
+            .list-item {
+                padding: 2vh 2.4vw;
+                border-left-width: 0.6vw;
+            }
+
+            .item-info .nombre {
+                font-size: clamp(1rem, 2vw, 1.6rem);
+            }
+
+            .header h1 {
+                font-size: clamp(1.4rem, 3.6vw, 2.6rem);
+            }
+
+            .admin-actions {
+                gap: 0.8vw;
+            }
+
+            .btn-admin {
+                padding: 0.4vh 1.6vw;
+                font-size: clamp(0.65rem, 1vw, 0.9rem);
+            }
+
+            .btn-admin.eliminar {
+                margin-left: 1vw;
+            }
+
+            .search-bar {
+                padding: 1.4vh 2.4vw;
+            }
+
+            .fab-agregar {
+                padding: 1.4vh 2.8vw;
+                font-size: clamp(0.8rem, 1.4vw, 1rem);
+                bottom: 2.5vh;
+                right: 2.5vw;
+            }
+
+            #toastContainer {
+                width: 340px;
+                right: 3vw;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .sidebar {
+                width: 28vw;
+                padding: 1.6vh 1.2vw;
+            }
+
+            .content {
+                margin-left: 28vw;
+                width: 72vw;
+                padding: 2.4vh 2.8vw;
+            }
+
+            .logo img {
+                width: 14vw;
+                max-width: 80px;
+            }
+
+            .menu a {
+                font-size: clamp(0.6rem, 1.8vw, 0.9rem);
+                padding: 1.4vh 0.6vw;
+                border-radius: 0.6rem;
+            }
+
+            .list-container {
+                gap: 2vh;
+            }
+
+            .list-item {
+                padding: 2vh 2.8vw;
+                border-left-width: 0.8vw;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1.2vh;
+            }
+
+            .item-info .nombre {
+                font-size: clamp(1.1rem, 4vw, 1.6rem);
+            }
+
+            .item-info .detalle {
+                font-size: clamp(0.8rem, 2vw, 1rem);
+            }
+
+            .header {
+                padding: 2vh 3vw;
+                border-left-width: 1vw;
+            }
+
+            .header h1 {
+                font-size: clamp(1.2rem, 4.5vw, 2rem);
+            }
+
+            .header p {
+                font-size: clamp(0.8rem, 2vw, 1rem);
+            }
+
+            .search-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 1.2vh;
+                padding: 2vh 3vw;
+            }
+
+            .search-bar input {
+                width: 100%;
+                padding: 1.4vh 2vw;
+            }
+
+            .search-bar button {
+                justify-content: center;
+                padding: 1.4vh 2vw;
+            }
+
+            .admin-actions {
+                gap: 1.2vw;
+                width: 100%;
+            }
+
+            .btn-admin {
+                padding: 0.6vh 3vw;
+                font-size: clamp(0.7rem, 2vw, 0.9rem);
+            }
+
+            .btn-admin.eliminar {
+                margin-left: 1.5vw;
+            }
+
+            .fab-agregar {
+                padding: 1.2vh 3.2vw;
+                font-size: clamp(0.75rem, 2.2vw, 0.95rem);
+                bottom: 2vh;
+                right: 2vw;
+                gap: 0.4vw;
+            }
+
+            .modal {
+                padding: 3vh 5vw;
+                border-left-width: 1.2vw;
+            }
+
+            .modal-acciones {
+                flex-direction: column-reverse;
+                gap: 1.4vh;
+            }
+
+            .modal-acciones button {
+                width: 100%;
+                justify-content: center;
+                padding: 1.6vh 2vw;
+            }
+
+            #toastContainer {
+                width: calc(100% - 6vw);
+                right: 3vw;
+                left: 3vw;
+                top: 1.5vh;
+            }
+
+            .toast {
+                padding: 1.4vh 4vw;
+                border-left-width: 1.2vw;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .sidebar {
+                width: 32vw;
+                padding: 1.2vh 0.8vw;
+            }
+
+            .content {
+                margin-left: 32vw;
+                width: 68vw;
+                padding: 2vh 2vw;
+            }
+
+            .menu a {
+                font-size: clamp(0.5rem, 2vw, 0.75rem);
+                padding: 1.2vh 0.4vw;
+            }
+
+            .logo img {
+                width: 16vw;
+            }
+
+            .list-item {
+                padding: 1.8vh 2.4vw;
+            }
+
+            .header h1 {
+                font-size: clamp(1rem, 5vw, 1.6rem);
+            }
+
+            .btn-admin {
+                font-size: clamp(0.6rem, 2.2vw, 0.75rem);
+                padding: 0.4vh 2.4vw;
+            }
+
+            .btn-admin.eliminar {
+                margin-left: 2vw;
+            }
+
+            .fab-agregar {
+                padding: 1vh 3.6vw;
+                font-size: clamp(0.7rem, 2.6vw, 0.85rem);
+                bottom: 1.5vh;
+                right: 1.5vw;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <aside class="sidebar">
+        <div class="logo">
+            <img src="{% static 'img/log.png' %}" alt="Logo institucional">
+        </div>
+        <ul class="menu">
+            <li><a href="inicio_g.html">Inicio</a></li>
+            <li><a href="municipios_g.html" class="active">Municipios</a></li>
+            <li><a href="#">Incidentes</a></li>
+            <li><a href="reportes_g.html">Reportes</a></li>
+            <li><a href="configuracion_g.html">Configuración</a></li>
+            <li><a href="{% url 'Logout' %}">Cerrar sesion</a></li>
+        </ul>
+    </aside>
+
+    <main class="content">
+        <div class="header">
+            <h1>Municipios</h1>
+            <p>Gestion de Municipios y su administrador</p>
+        </div>
+
+        <!-- ===== BARRA DE BÚSQUEDA ===== -->
+        <div class="search-bar">
+            <input type="text" id="inputBusqueda" placeholder="Buscar municipio ..." aria-label="Buscar municipio"
+                autocomplete="off">
+            <button type="button" id="btnBuscar">🔍 Buscar</button>
+        </div>
+
+        <!-- ===== LISTADO DE MUNICIPIOS ===== -->
+        <div class="list-container" id="listContainer">
+            {% for m in municipios %}
+            <div class="list-item" data-nombre="{{ m.municipio|lower }}" data-id="{{ m.id_municipio }}"
+                data-id-usuario="{{ m.id_usuario|default:'' }}">
+                <div class="item-info">
+                    <div class="nombre">{{ m.municipio }}</div>
+                    {% if m.nombre_completo %}
+                    <div class="item-admin">👤 Administrador: <strong>{{ m.nombre_completo }}</strong></div>
+                    {% else %}
+                    <div class="item-admin sin-asignar">👤 Sin administrador asignado</div>
+                    {% endif %}
+                    <div class="admin-actions">
+                        {% if m.id_usuario %}
+                        <button class="btn-admin actualizar">✎ Actualizar Administrador</button>
+                        {% else %}
+                        <button class="btn-admin agregar">+ Agregar Administrador</button>
+                        {% endif %}
+                        <button class="btn-admin eliminar-antes" {% if not m.id_usuario %}disabled{% endif %}>
+                            ⚠️ Eliminar administrador
+                        </button>
+                        <button class="btn-admin eliminar">✕ Eliminar</button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="list-item" data-nombre="" data-id="">
+                <div class="item-info">
+                    <div class="nombre">No hay municipios registrados</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- ===== MENSAJE SIN RESULTADOS ===== -->
+        <div class="list-item" id="sinResultados" style="display:none;">
+            <div class="item-info">
+                <div class="nombre">🔍 No se encontraron municipios</div>
+                <div class="detalle">Intenta con otro nombre.</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ===== BOTÓN FLOTANTE ===== -->
+    <button class="fab-agregar" id="btnAbrirModal">Agregar Municipio</button>
+
+    <!-- ===== MODAL ===== -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <h2>Agregar Municipio</h2>
+            {% csrf_token %}
+            <label for="nombreMunicipio">Nombre del municipio</label>
+            <input type="text" id="nombreMunicipio" placeholder="Ej: Puerto Cortés" autocomplete="off">
+            <div class="modal-acciones">
+                <button class="btn-cancelar" id="btnCerrarModal">Cancelar</button>
+                <button class="btn-guardar" id="btnGuardar">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== CONTENEDOR DE NOTIFICACIONES (TOASTS) ===== -->
+    <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- ===== SCRIPT: AGREGAR / ELIMINAR MUNICIPIO Y ADMINISTRADOR ===== -->
+    <script>
+        (function () {
+            const overlay = document.getElementById('modalOverlay');
+            const btnAbrir = document.getElementById('btnAbrirModal');
+            const btnCerrar = document.getElementById('btnCerrarModal');
+            const btnGuardar = document.getElementById('btnGuardar');
+            const inputNombre = document.getElementById('nombreMunicipio');
+            const toastContainer = document.getElementById('toastContainer');
+
+            // Token CSRF (Django)
+            const csrfInput = document.querySelector('[name=csrfmiddlewaretoken]');
+            const csrfToken = csrfInput ? csrfInput.value : '';
+
+            // URLs
+            const URL_AGREGAR = "{% url 'Agregar-Municipio' %}";
+            const URL_ELIMINAR = "{% url 'Eliminar-Municipio' %}";
+            const URL_AGREGAR_ADMIN = "{% url 'Agregar-Administrador' %}";
+            const URL_ELIMINAR_ADMIN = "{% url 'Eliminar-Administrador' %}";
+            const ICONOS = {
+                success: '✅',
+                error: '❌',
+                warning: '⚠️',
+                info: 'ℹ️'
+            };
+
+            // Duración por defecto (ms)
+            const DURACION = 5000;
+
+            /**
+             * Crea y muestra un toast en pantalla.
+             */
+            function crearToast(variante, titulo, texto, duracion = DURACION) {
+                const toast = document.createElement('div');
+                toast.className = 'toast ' + variante;
+
+                const icono = document.createElement('div');
+                icono.className = 'icono';
+                icono.textContent = ICONOS[variante] || 'ℹ️';
+
+                const contenido = document.createElement('div');
+                contenido.className = 'contenido';
+
+                const t = document.createElement('div');
+                t.className = 'titulo';
+                t.textContent = titulo;
+
+                const p = document.createElement('div');
+                p.className = 'texto';
+                p.textContent = texto || '';
+
+                contenido.appendChild(t);
+                contenido.appendChild(p);
+
+                const btnCerrarToast = document.createElement('button');
+                btnCerrarToast.className = 'cerrar';
+                btnCerrarToast.setAttribute('aria-label', 'Cerrar');
+                btnCerrarToast.textContent = '✕';
+
+                const barra = document.createElement('div');
+                barra.className = 'barra';
+                const barraSpan = document.createElement('span');
+                barra.appendChild(barraSpan);
+
+                toast.appendChild(icono);
+                toast.appendChild(contenido);
+                toast.appendChild(btnCerrarToast);
+                toast.appendChild(barra);
+
+                toastContainer.appendChild(toast);
+
+                let timeoutId = null;
+
+                function remover() {
+                    if (timeoutId) clearTimeout(timeoutId);
+                    toast.classList.add('saliendo');
+                    setTimeout(() => {
+                        if (toast.parentNode) toast.parentNode.removeChild(toast);
+                    }, 300);
+                }
+
+                btnCerrarToast.addEventListener('click', remover);
+
+                // Auto-cierre
+                timeoutId = setTimeout(remover, duracion);
+            }
+
+            /**
+             * Muestra el mensaje correspondiente según el tipo devuelto
+             * por el backend, usando un MATCH (switch).
+             */
+            function mostrarMensaje(data) {
+                const mensaje = (data && data.mensaje) ? data.mensaje : '';
+                const error = (data && data.error) ? data.error : '';
+                const tipo = data && data.tipo ? data.tipo : 'desconocido';
+
+                switch (tipo) {
+                    // ---------- MUNICIPIOS ----------
+                    case 'municipio_creado':
+                        crearToast('success', 'Municipio creado', mensaje || 'El municipio se agregó correctamente.');
+                        break;
+
+                    case 'municipio_eliminado':
+                        crearToast('success', 'Municipio eliminado', mensaje || 'El municipio se eliminó correctamente.');
+                        break;
+
+                    case 'municipio_error':
+                        crearToast('error', 'Error en municipio', error || mensaje || 'Ocurrió un error inesperado.');
+                        break;
+
+                    // ---------- ADMINISTRADORES ----------
+                    case 'administrador_creado':
+                        crearToast('success', 'Administrador creado', mensaje || 'El administrador se registró correctamente.');
+                        break;
+
+                    case 'administrador_eliminado':
+                        crearToast('success', 'Administrador eliminado', mensaje || 'El administrador se eliminó correctamente.');
+                        break;
+
+                    case 'administrador_actualizado':
+                        crearToast('success', 'Administrador actualizado', mensaje || 'Los datos del administrador se actualizaron.');
+                        break;
+
+                    case 'administrador_error':
+                        crearToast('error', 'Error en administrador', error || mensaje || 'Ocurrió un error inesperado.');
+                        break;
+
+                    // ---------- POR DEFECTO ----------
+                    default:
+                        if (data && data.ok === false) {
+                            crearToast('error', 'Error', error || mensaje || 'Ocurrió un error inesperado.');
+                        } else {
+                            crearToast('info', 'Aviso', mensaje || 'Operación completada.');
+                        }
+                        break;
+                }
+            }
+
+            /* ============================================================
+             * ========== MODAL: ABRIR / CERRAR ==========
+             * ============================================================ */
+            btnAbrir.addEventListener('click', function () {
+                overlay.classList.add('activo');
+                inputNombre.value = '';
+                inputNombre.focus();
+            });
+
+            function cerrarModal() {
+                overlay.classList.remove('activo');
+                btnGuardar.disabled = false;
+                btnGuardar.textContent = 'Guardar';
+            }
+
+            btnCerrar.addEventListener('click', cerrarModal);
+
+            overlay.addEventListener('click', function (e) {
+                if (e.target === overlay) cerrarModal();
+            });
+
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && overlay.classList.contains('activo')) {
+                    cerrarModal();
+                }
+            });
+
+            /* ============================================================
+             * ========== GUARDAR MUNICIPIO ==========
+             * ============================================================ */
+            btnGuardar.addEventListener('click', async function () {
+                const nombre = inputNombre.value.trim();
+
+                if (!nombre) {
+                    crearToast('warning', 'Campo vacío', 'Ingrese el nombre del municipio.');
+                    inputNombre.focus();
+                    return;
+                }
+
+                if (!csrfToken) {
+                    crearToast('error', 'Error CSRF', 'No se encontró el token CSRF. Recarga la página.');
+                    return;
+                }
+
+                btnGuardar.disabled = true;
+                btnGuardar.textContent = 'Guardando...';
+
+                try {
+                    const respuesta = await fetch(URL_AGREGAR, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: new URLSearchParams({ nombre: nombre })
+                    });
+
+                    const texto = await respuesta.text();
+
+                    let data;
+                    try {
+                        data = JSON.parse(texto);
+                    } catch (e) {
+                        console.error('Respuesta no JSON del servidor:', texto);
+                        throw new Error(
+                            'El servidor no devolvió JSON. Revisa la URL "Agregar-Municipio".'
+                        );
+                    }
+
+                    mostrarMensaje(data);
+
+                    if (respuesta.ok && data.ok) {
+                        cerrarModal();
+                        setTimeout(() => location.reload(), 900);
+                    } else {
+                        btnGuardar.disabled = false;
+                        btnGuardar.textContent = 'Guardar';
+                    }
+
+                } catch (err) {
+                    console.error('Error al guardar municipio:', err);
+                    crearToast('error', 'Error de conexión', err.message);
+                    btnGuardar.disabled = false;
+                    btnGuardar.textContent = 'Guardar';
+                }
+            });
+
+            /* ============================================================
+             * ========== BÚSQUEDA / FILTRO ==========
+             * ============================================================ */
+            const inputBusqueda = document.getElementById('inputBusqueda');
+            const btnBuscar = document.getElementById('btnBuscar');
+            const items = document.querySelectorAll('.list-item[data-nombre]');
+            const sinResultados = document.getElementById('sinResultados');
+
+            function normalizar(texto) {
+                return texto
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '');
+            }
+
+            function filtrar() {
+                const termino = normalizar(inputBusqueda.value.trim());
+                let visibles = 0;
+
+                items.forEach(function (item) {
+                    const nombre = normalizar(item.getAttribute('data-nombre') || '');
+                    const coincide = termino === '' || nombre.includes(termino);
+
+                    item.style.display = coincide ? '' : 'none';
+                    if (coincide) visibles++;
+                });
+
+                sinResultados.style.display = (visibles === 0 && termino !== '') ? '' : 'none';
+            }
+
+            inputBusqueda.addEventListener('input', filtrar);
+            btnBuscar.addEventListener('click', filtrar);
+
+            inputBusqueda.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    filtrar();
+                }
+            });
+
+            inputBusqueda.addEventListener('dblclick', function () {
+                inputBusqueda.value = '';
+                filtrar();
+                inputBusqueda.focus();
+            });
+
+            /* ============================================================
+             * ========== AGREGAR / ACTUALIZAR ADMINISTRADOR ==========
+             * ============================================================ */
+            document.addEventListener('click', function (e) {
+                const boton = e.target.closest('.btn-admin.agregar, .btn-admin.actualizar');
+                if (!boton) return;
+
+                const item = boton.closest('.list-item');
+                const idMunicipio = item ? item.getAttribute('data-id') : '';
+
+                if (!idMunicipio) {
+                    crearToast('warning', 'Sin municipio', 'No se pudo identificar el municipio.');
+                    return;
+                }
+
+                // Detecta si es alta o edición y se lo pasa al backend
+                const modo = boton.classList.contains('actualizar') ? 'actualizar' : 'agregar';
+
+                window.location.href = URL_AGREGAR_ADMIN
+                    + '?id_municipio=' + encodeURIComponent(idMunicipio)
+                    + '&modo=' + modo;
+            });
+
+            /* ============================================================
+             * ========== ELIMINAR ADMINISTRADOR ==========
+             * ============================================================ */
+            document.addEventListener('click', async function (e) {
+                const boton = e.target.closest('.btn-admin.eliminar-antes');
+                if (!boton || boton.disabled) return;
+
+                const item = boton.closest('.list-item');
+                const idUsuario = item ? item.getAttribute('data-id-usuario') : '';
+                const nombreMunicipio = item ? item.querySelector('.nombre').textContent.trim() : '';
+
+                if (!idUsuario) {
+                    crearToast('warning', 'Sin administrador', 'Este municipio no tiene administrador asignado.');
+                    return;
+                }
+
+                const confirmar = confirm(
+                    '¿Está seguro de eliminar el administrador del municipio "' + nombreMunicipio + '"?\n\n' +
+                    'El municipio quedará sin administrador asignado.'
+                );
+
+                if (!confirmar) return;
+
+                boton.disabled = true;
+                const textoOriginal = boton.textContent;
+                boton.textContent = 'Eliminando...';
+
+                try {
+                    const respuesta = await fetch(URL_ELIMINAR_ADMIN, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: new URLSearchParams({ id_usuario: idUsuario })
+                    });
+
+                    let data;
+                    try {
+                        data = await respuesta.json();
+                    } catch (parseErr) {
+                        const texto = await respuesta.text();
+                        console.error('Respuesta no JSON al eliminar administrador:', texto);
+                        throw new Error('El servidor no devolvió JSON: ' + texto);
+                    }
+
+                    mostrarMensaje(data);
+
+                    if (respuesta.ok && data.ok) {
+                        // Actualizar UI sin recargar
+                        const adminDiv = item.querySelector('.item-admin');
+                        if (adminDiv) {
+                            adminDiv.className = 'item-admin sin-asignar';
+                            adminDiv.innerHTML = '👤 Sin administrador asignado';
+                        }
+
+                        item.setAttribute('data-id-usuario', '');
+
+                        // Volver el botón a "Agregar Administrador"
+                        const btnAdd = item.querySelector('.btn-admin.agregar, .btn-admin.actualizar');
+                        if (btnAdd) {
+                            btnAdd.className = 'btn-admin agregar';
+                            btnAdd.textContent = '+ Agregar Administrador';
+                        }
+
+                        boton.disabled = true;
+                        boton.textContent = textoOriginal;
+                    } else {
+                        boton.disabled = false;
+                        boton.textContent = textoOriginal;
+                    }
+
+                } catch (err) {
+                    console.error('Error al eliminar administrador:', err);
+                    crearToast('error', 'Error de conexión', err.message);
+                    boton.disabled = false;
+                    boton.textContent = textoOriginal;
+                }
+            });
+
+            /* ============================================================
+             * ========== ELIMINAR MUNICIPIO ==========
+             * ============================================================ */
+            document.addEventListener('click', async function (e) {
+                const boton = e.target.closest('.btn-admin.eliminar');
+                if (!boton) return;
+
+                const item = boton.closest('.list-item');
+                const idMunicipio = item ? item.getAttribute('data-id') : '';
+                const nombreMunicipio = item ? item.querySelector('.nombre').textContent.trim() : '';
+
+                if (!idMunicipio) {
+                    crearToast('warning', 'Sin municipio', 'No se pudo identificar el municipio.');
+                    return;
+                }
+
+                const confirmar = confirm(
+                    '¿Está seguro de eliminar el municipio "' + nombreMunicipio + '"?\n\n' +
+                    'Esta acción no se puede deshacer.'
+                );
+
+                if (!confirmar) return;
+
+                boton.disabled = true;
+                boton.textContent = 'Eliminando...';
+
+                try {
+                    const respuesta = await fetch(URL_ELIMINAR, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                        body: new URLSearchParams({ id_municipio: idMunicipio })
+                    });
+
+                    let data;
+                    try {
+                        data = await respuesta.json();
+                    } catch (parseErr) {
+                        const texto = await respuesta.text();
+                        console.error('Respuesta no JSON al eliminar:', texto);
+                        throw new Error('El servidor no devolvió JSON: ' + texto);
+                    }
+
+                    mostrarMensaje(data);
+
+                    if (respuesta.ok && data.ok) {
+                        item.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        item.style.opacity = '0';
+                        item.style.transform = 'scale(0.95)';
+
+                        setTimeout(function () {
+                            item.remove();
+
+                            const restantes = document.querySelectorAll('.list-item[data-id]:not([data-id=""])');
+                            if (restantes.length === 0) {
+                                const listContainer = document.getElementById('listContainer');
+                                listContainer.innerHTML =
+                                    '<div class="list-item">' +
+                                    '<div class="item-info">' +
+                                    '<div class="nombre">No hay municipios registrados</div>' +
+                                    '</div>' +
+                                    '</div>';
+                            }
+                        }, 300);
+                    } else {
+                        boton.disabled = false;
+                        boton.textContent = '✕ Eliminar';
+                    }
+
+                } catch (err) {
+                    console.error('Error al eliminar municipio:', err);
+                    crearToast('error', 'Error de conexión', err.message);
+                    boton.disabled = false;
+                    boton.textContent = '✕ Eliminar';
+                }
+            });
+
+        })();
+    </script>
+
+</body>
+
+</html>

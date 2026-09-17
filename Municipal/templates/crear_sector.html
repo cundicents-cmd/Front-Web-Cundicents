@@ -1,0 +1,455 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5" />
+    <title>Gestión · Mapa de sectores</title>
+    <link rel="icon" type="image/png" href="{% static 'img/log.png' %}">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <!-- Font Awesome (opcional) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+    <style>
+        /* ===== ESTILOS GENERALES (desde HTML 1, sin sidebar) ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #fff8d6;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Contenedor principal: 80% del ancho */
+        .app {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            width: 80%;
+            max-width: 1400px;
+            padding: 1.5vh 0;
+            gap: 1.5vh;
+        }
+
+        /* Fila superior: Volver (izquierda) + Textfield (centro) */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            padding: 0 0.5vw;
+            gap: 1vw;
+        }
+
+        .top-bar .btn-volver {
+            background: #b91c1c;
+            border-color: #b91c1c;
+            color: white;
+            padding: 0.6rem 1.5rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.15s;
+            flex-shrink: 0;
+        }
+
+        .top-bar .btn-volver:hover {
+            background: #991b1b;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .top-bar .nombre-input-group {
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            padding: 0.4rem 1rem 0.4rem 1.5rem;
+            border-radius: 50px;
+            border: 2px solid #d0d7de;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+            flex: 1;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .top-bar .nombre-input-group label {
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+
+        .top-bar .nombre-input {
+            border: none;
+            background: transparent;
+            padding: 0.5rem 0;
+            font-size: 0.95rem;
+            flex: 1;
+            outline: none;
+            min-width: 100px;
+        }
+
+        .top-bar .nombre-input:focus {
+            border-bottom: 2px solid #d71920;
+        }
+
+        /* Contenedor del mapa: ocupa la mitad de la pantalla */
+        .map-container {
+            width: 100%;
+            height: 50vh;
+            min-height: 300px;
+            background: #e5e9f0;
+            border-radius: 1.2rem;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Fila inferior: botones Limpiar y Guardar centrados */
+        .bottom-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 0.8rem 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.7rem 2rem;
+            border-radius: 40px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            transition: all 0.15s;
+            letter-spacing: 0.3px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-limpiar {
+            background: #2563eb;
+            border-color: #2563eb;
+            color: white;
+        }
+
+        .btn-limpiar:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-guardar {
+            background: #0b7e4b;
+            border-color: #0b7e4b;
+            color: white;
+        }
+
+        .btn-guardar:hover {
+            background: #0a6a3f;
+        }
+
+        /* Toast */
+        .toast {
+            background: #1e293b;
+            color: white;
+            padding: 0.6rem 1.6rem;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.25s;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .app {
+                width: 90%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .app {
+                width: 95%;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.8rem;
+            }
+
+            .top-bar .btn-volver {
+                align-self: flex-start;
+            }
+
+            .top-bar .nombre-input-group {
+                max-width: 100%;
+            }
+
+            .map-container {
+                height: 45vh;
+                min-height: 250px;
+            }
+
+            .bottom-controls {
+                gap: 1rem;
+            }
+
+            .btn {
+                padding: 0.6rem 1.5rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .app {
+                width: 98%;
+                padding: 1vh 0;
+            }
+
+            .map-container {
+                height: 40vh;
+                min-height: 200px;
+            }
+
+            .btn {
+                padding: 0.5rem 1.2rem;
+                font-size: 0.8rem;
+            }
+
+            .top-bar .nombre-input {
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+        <!-- Fila superior: Volver (izquierda) + Textfield (centro) -->
+        <div class="top-bar">
+            <button class="btn-volver" id="btnVolver">
+                <i class="fas fa-arrow-left"></i> Volver
+            </button>
+            <div class="nombre-input-group">
+                <label for="nombreSector"><i class="fas fa-tag"></i></label>
+                <input type="text" id="nombreSector" class="nombre-input" placeholder="Nombre del sector"/>
+            </div>
+            <div style="width: 0; flex-shrink: 0;"></div> <!-- spacer para mantener centrado -->
+        </div>
+
+        <!-- Mapa (ocupa la mitad) -->
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+
+        <!-- Botones debajo del mapa: Limpiar (Azul) y Guardar (Verde) -->
+        <div class="bottom-controls">
+            <button class="btn btn-limpiar" id="btnLimpiarMapa">
+                <i class="fas fa-eraser"></i> Limpiar
+            </button>
+            <button class="btn btn-guardar" id="btnGuardar">
+                <i class="fas fa-save"></i> Guardar
+            </button>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        (function () {
+            'use strict';
+
+            // ---------- ESTADO ----------
+            const state = {
+                points: [],
+                polygon: null,
+                polyline: null,
+                markers: [],
+                isClosed: false,
+            };
+
+            // ---------- MAPA (Leaflet) - Colombia ----------
+            const map = L.map('map', { zoomControl: true }).setView([4.5709, -74.2973], 6); // Centro de Colombia
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            // ---------- TOAST ----------
+            let toastTimer = null;
+            function showToast(msg, duration = 2500) {
+                const el = document.getElementById('toast');
+                el.textContent = msg;
+                el.classList.add('show');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+            }
+
+            // ---------- DIBUJAR POLÍGONO ACTUAL ----------
+            function renderCurrentPolygon() {
+                if (state.polyline) { map.removeLayer(state.polyline); state.polyline = null; }
+                if (state.polygon) { map.removeLayer(state.polygon); state.polygon = null; }
+                state.markers.forEach(m => map.removeLayer(m));
+                state.markers = [];
+
+                const pts = state.points;
+                if (pts.length === 0) return;
+
+                pts.forEach((latlng, idx) => {
+                    const marker = L.circleMarker(latlng, {
+                        radius: 7,
+                        color: '#2563eb',
+                        fillColor: '#3b82f6',
+                        fillOpacity: 0.9,
+                        weight: 2
+                    });
+                    marker.bindTooltip(`${idx + 1}`, { permanent: false, direction: 'top' });
+                    marker.addTo(map);
+                    state.markers.push(marker);
+                });
+
+                if (pts.length >= 2) {
+                    state.polyline = L.polyline(pts, { color: '#2563eb', weight: 3, opacity: 0.8 }).addTo(map);
+                }
+
+                if (state.isClosed && pts.length >= 4) {
+                    const polygonCoords = [...pts, pts[0]];
+                    state.polygon = L.polygon(polygonCoords, {
+                        color: '#1e7b4b',
+                        fillColor: '#facc25',
+                        fillOpacity: 0.5,
+                        weight: 2,
+                    }).addTo(map);
+                    if (state.polyline) {
+                        map.removeLayer(state.polyline);
+                        state.polyline = L.polyline([...pts, pts[0]], { color: '#2563eb', weight: 3, opacity: 0.8 }).addTo(map);
+                    }
+                } else {
+                    if (state.polyline && !state.isClosed) {
+                        map.removeLayer(state.polyline);
+                        state.polyline = L.polyline(pts, { color: '#2563eb', weight: 3, opacity: 0.8 }).addTo(map);
+                    }
+                }
+            }
+
+            // ---------- MANEJO DE CLICS EN EL MAPA ----------
+            function onMapClick(e) {
+                if (state.isClosed) {
+                    showToast('El sector está cerrado. Usa "Limpiar" para empezar uno nuevo.');
+                    return;
+                }
+
+                const latlng = e.latlng;
+
+                if (state.points.length < 4) {
+                    state.points.push(latlng);
+                    renderCurrentPolygon();
+                    return;
+                }
+
+                const first = state.points[0];
+                const dist = map.distance(latlng, first);
+                if (dist < 30) {
+                    if (state.points.length >= 4 && !state.isClosed) {
+                        state.isClosed = true;
+                        renderCurrentPolygon();
+                        showToast('✅ Sector cerrado correctamente.');
+                    } else {
+                        showToast('No se puede cerrar (menos de 4 puntos)');
+                    }
+                    return;
+                }
+
+                state.points.push(latlng);
+                renderCurrentPolygon();
+            }
+
+            map.on('click', onMapClick);
+
+            // ---------- REINICIAR DIBUJO ----------
+            function resetDrawing() {
+                if (state.polyline) { map.removeLayer(state.polyline); state.polyline = null; }
+                if (state.polygon) { map.removeLayer(state.polygon); state.polygon = null; }
+                state.markers.forEach(m => map.removeLayer(m));
+                state.markers = [];
+                state.points = [];
+                state.isClosed = false;
+            }
+
+            // ---------- BOTÓN LIMPIAR (elimina puntos del mapa) ----------
+            document.getElementById('btnLimpiarMapa').addEventListener('click', () => {
+                if (state.points.length === 0 && !state.isClosed) {
+                    showToast('No hay nada que limpiar');
+                    return;
+                }
+                resetDrawing();
+                showToast('Dibujo limpiado');
+            });
+
+            // ---------- BOTÓN GUARDAR (solo muestra mensaje) ----------
+            document.getElementById('btnGuardar').addEventListener('click', function () {
+                if (!state.isClosed || state.points.length < 4) {
+                    showToast('Debes colocar al menos 4 puntos y cerrar el sector.');
+                    return;
+                }
+                const nombre = document.getElementById('nombreSector').value.trim() || 'Sector';
+                showToast(`Sector "${nombre}" guardado (solo demostración)`);
+            });
+
+            // ---------- BOTÓN VOLVER (sin funcionalidad) ----------
+            document.getElementById('btnVolver').addEventListener('click', () => {
+                showToast('Volver (sin funcionalidad)');
+            });
+
+            // ---------- INICIALIZAR ----------
+            showToast('Haz clic en el mapa para dibujar un sector', 2000);
+        })();
+    </script>
+
+</body>
+
+</html>

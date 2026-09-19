@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import VerMunicipios
+from .models import VerMunicipios, VerUsuarios
 from django.db import connection
 from django.http import JsonResponse
 from django.contrib.auth.hashers import make_password
@@ -26,7 +26,6 @@ def gestion_municipios(request):
     municipios = VerMunicipios.objects.all()
     return render(request, 'municipios_g.html', {'municipios': municipios})
 
-
 @login_required
 @group_required("Gubernamental")
 def agregar_municipio(request):
@@ -37,7 +36,6 @@ def agregar_municipio(request):
         return JsonResponse({'ok': True, 'tipo': 'municipio_creado', 'mensaje': 'Municipio agregado correctamente.'})
     except Exception as e:
         return JsonResponse({'ok': False, 'tipo': 'municipio_error', 'mensaje': 'Ocurrió un error al crear el municipio.', 'error': str(e)}, status=500)
-
 
 @login_required
 @group_required("Gubernamental")
@@ -71,7 +69,6 @@ def agregar_administrador(request):
         return redirect('Municipios')
     contexto = {'id_municipio': id}
     return render(request, 'agregar_administrador_g.html', contexto)
-
 
 @login_required
 @group_required("Gubernamental")
@@ -121,7 +118,6 @@ def registrar_administrador(request):
 
     return render(request, 'agregar_administrador_g.html', contexto)
 
-
 @login_required
 @group_required("Gubernamental")
 @require_POST
@@ -135,37 +131,54 @@ def eliminar_administrador(request):
     except Exception as e:
         return JsonResponse({'ok': False, 'tipo': 'administrador_error', 'mensaje': 'Ocurrió un error al eliminar el administrador.', 'error': str(e)}, status=500)
 
-
-# ==========================================================
-# View de actualización de administrador (referencia)
-# ==========================================================
 @login_required
 @group_required("Gubernamental")
-@require_POST
-def actualizar_administrador(request):
-    id_usuario = request.POST.get('id_usuario', '').strip()
-
-    if not id_usuario:
-        return JsonResponse({
-            'ok': False,
-            'tipo': 'administrador_error',
-            'mensaje': 'ID de usuario no proporcionado.',
-            'error': 'ID de usuario no proporcionado.'
-        }, status=400)
-
+def actualizar_administrador(request, id):
+    # ===== Obtener el administrador =====
     try:
-        # Aquí va tu lógica de actualización (SP, ORM, etc.)
-        # ...
+        administrador = VerUsuarios.objects.get(id=id)
+    except VerUsuarios.DoesNotExist:
+        messages.error(request, 'El administrador no existe.')
+        return redirect('Municipios')
 
-        return JsonResponse({
-            'ok': True,
-            'tipo': 'administrador_actualizado',
-            'mensaje': 'Administrador actualizado correctamente.'
+    # ===== GET: mostrar formulario con datos actuales =====
+    if request.method != 'POST':
+        return render(request, 'actualizar_administrador_g.html', {
+            'administrador': administrador
         })
+
+    nombre    = request.POST.get('nombre', '').strip()
+    apellidos = request.POST.get('apellidos', '').strip()
+    cedula    = request.POST.get('cedula', '').strip()
+    correo    = request.POST.get('correo', '').strip()
+    password  = request.POST.get('password', '').strip()
+
+
+    # ----- Validar cédula duplicada (otro usuario) -----
+    if VerUsuarios.objects.filter(cedula=cedula).exclude(id=id).exists():
+        messages.error(request, 'La cédula ya está registrada por otro usuario.')
+        return render(request, 'actualizar_administrador_g.html', {
+            'administrador': administrador
+        })
+
+    # ----- Validar correo duplicado (otro usuario) -----
+    if VerUsuarios.objects.filter(correo=correo).exclude(id=id).exists():
+        messages.error(request, 'El correo ya está registrado por otro usuario.')
+        return render(request, 'actualizar_administrador_g.html', {
+            'administrador': administrador
+        })
+
+    # ----- Guardar cambios -----
+    try:
+        with connection.cursor() as cursor:
+            cursor.callproc('actualizar_Usuario', [id , nombre, apellidos, cedula, correo, make_password(password)])
+        messages.success(request, 'Administrador actualizado correctamente.')
+        return redirect('Municipios')
+
     except Exception as e:
-        return JsonResponse({
-            'ok': False,
-            'tipo': 'administrador_error',
-            'mensaje': 'Ocurrió un error al actualizar el administrador.',
-            'error': str(e)
-        }, status=500)
+        # ❌ Error → se queda en HTML2 con el mensaje
+        messages.error(request, f'Ocurrió un error al actualizar el administrador: {e}')
+        return render(request, 'actualizar_administrador_g.html', {
+            'administrador': administrador
+        })
+      

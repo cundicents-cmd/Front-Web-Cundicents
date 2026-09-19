@@ -1,0 +1,824 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>Actualizar Administrador · Sistema de Incidentes</title>
+    <link rel="icon" type="image/png" href="{% static 'img/log.png' %}">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8eaa4;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: 4vh 4vw;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* ========== BOTÓN VOLVER ========== */
+        .btn-volver {
+            position: fixed;
+            top: 2.5vh;
+            left: 2.5vw;
+            background-color: #d71920;
+            color: white;
+            border: none;
+            border-radius: 3rem;
+            padding: 1.2vh 1.8vw;
+            font-weight: 700;
+            font-size: clamp(0.85rem, 1.1vw, 1.1rem);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+            box-shadow: 0 0.4vh 1.2vh rgba(215, 25, 32, 0.3);
+            transition: 0.2s ease;
+            z-index: 1000;
+            letter-spacing: 0.3px;
+            white-space: nowrap;
+        }
+
+        .btn-volver:hover {
+            background-color: #b01218;
+            transform: scale(1.04);
+            box-shadow: 0 0.6vh 1.6vh rgba(215, 25, 32, 0.4);
+        }
+
+        .btn-volver .arrow {
+            font-size: 1.2em;
+            line-height: 1;
+        }
+
+        /* ========== CONTENIDO PRINCIPAL ========== */
+        .content {
+            width: 100%;
+            max-width: 640px;
+            display: flex;
+            flex-direction: column;
+            padding-top: 5vh;
+        }
+
+        .header {
+            background-color: white;
+            border-left: 0.6vw solid #d71920;
+            padding: 2.8vh 2.8vw;
+            border-radius: 1.2rem;
+            margin-bottom: 2.5vh;
+            box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.08);
+        }
+
+        .header h1 {
+            color: #d71920;
+            font-size: clamp(1.6rem, 3.2vw, 2.8rem);
+            margin-bottom: 0.6vh;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #444;
+            font-size: clamp(1rem, 1.4vw, 1.3rem);
+        }
+
+        /* ========== FORMULARIO ========== */
+        .form-card {
+            background: white;
+            border-radius: 1.6rem;
+            padding: 4vh 3.2vw;
+            box-shadow: 0 0.8vh 2.4vh rgba(0, 0, 0, 0.08);
+            border-left: 0.8vw solid #f5c400;
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .form-card h2 {
+            color: #d71920;
+            font-size: clamp(1.4rem, 2.2vw, 1.9rem);
+            margin-bottom: 2.8vh;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            border-bottom: 2px solid #f5c400;
+            padding-bottom: 1.4vh;
+            display: inline-block;
+            align-self: flex-start;
+        }
+
+        .form-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 2.2vh;
+            margin-bottom: 3vh;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6vh;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #1e1e1e;
+            font-size: clamp(0.9rem, 1.05vw, 1.1rem);
+            display: flex;
+            align-items: center;
+            gap: 0.4vw;
+        }
+
+        .form-group label i {
+            font-style: normal;
+            color: #d71920;
+            font-weight: 700;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 1.4vh 1.6vw;
+            border: 1.5px solid #d0c8b0;
+            border-radius: 1rem;
+            font-size: clamp(0.95rem, 1.1vw, 1.15rem);
+            background: #fefcf3;
+            outline: none;
+            transition: 0.2s;
+            color: #222;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #d71920;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(215, 25, 32, 0.12);
+        }
+
+        .form-group input.invalid {
+            border-color: #b02b2b;
+            box-shadow: 0 0 0 3px rgba(176, 43, 43, 0.12);
+        }
+
+        .form-group input.valid {
+            border-color: #1f7a3d;
+            box-shadow: 0 0 0 3px rgba(31, 122, 61, 0.12);
+        }
+
+        .form-group input[type="number"] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+        }
+
+        .form-group input[type="number"]::-webkit-outer-spin-button,
+        .form-group input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* ===== MENSAJE DE ERROR DEL CORREO ===== */
+        #correoError {
+            display: none;
+            color: #b02b2b;
+            font-weight: 600;
+            font-size: clamp(0.75rem, 0.95vw, 0.9rem);
+            margin-top: 0.5vh;
+            padding-left: 0.5vw;
+        }
+
+        /* ===== CONTRASEÑA CON OJO ===== */
+        .password-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .password-wrapper input {
+            padding-right: 3.2vw;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 0.8vw;
+            background: transparent;
+            border: none;
+            font-size: clamp(1rem, 1.3vw, 1.4rem);
+            cursor: pointer;
+            padding: 0.4vh 0.6vw;
+            border-radius: 50%;
+            color: #d71920;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .toggle-password:hover {
+            background: rgba(215, 25, 32, 0.08);
+            transform: scale(1.08);
+        }
+
+        /* ===== INDICADOR DE REQUISITOS ===== */
+        .password-hint {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4vh;
+            margin-top: 1vh;
+            padding: 1.2vh 1.4vw;
+            background: #fefcf3;
+            border-radius: 0.8rem;
+            border-left: 0.3vw solid #f5c400;
+            font-size: clamp(0.75rem, 0.95vw, 0.95rem);
+            transition: 0.2s;
+        }
+
+        .password-hint .req {
+            color: #b02b2b;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+            font-weight: 500;
+        }
+
+        .password-hint .req.ok {
+            color: #1f7a3d;
+            font-weight: 700;
+        }
+
+        .password-hint .req .icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.2em;
+            font-weight: 700;
+        }
+
+        /* ===== NOTA CONTRASEÑA OPCIONAL ===== */
+        .password-note {
+            color: #8a6d00;
+            font-weight: 600;
+            font-size: clamp(0.75rem, 0.95vw, 0.9rem);
+            margin-top: 0.8vh;
+            padding: 0.8vh 1.2vw;
+            background: #fff8e1;
+            border-radius: 0.6rem;
+            border-left: 0.3vw solid #f5c400;
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+        }
+
+        /* ===== BOTONES ===== */
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1.4vw;
+            flex-wrap: wrap;
+            margin-top: auto;
+            padding-top: 1.6vh;
+        }
+
+        .form-actions button {
+            border: none;
+            padding: 1.6vh 3vw;
+            border-radius: 3rem;
+            font-weight: 700;
+            font-size: clamp(0.95rem, 1.1vw, 1.15rem);
+            cursor: pointer;
+            transition: 0.2s;
+            letter-spacing: 0.3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6vw;
+        }
+
+        .btn-registrar {
+            background-color: #d71920;
+            color: white;
+            box-shadow: 0 0.4vh 1.2vh rgba(215, 25, 32, 0.3);
+            flex: 1 1 auto;
+            max-width: 260px;
+        }
+
+        .btn-registrar:hover {
+            background-color: #b01218;
+            transform: scale(1.02);
+            box-shadow: 0 0.6vh 1.8vh rgba(215, 25, 32, 0.4);
+        }
+
+        .btn-registrar:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-limpiar {
+            background-color: #f5c400;
+            color: #8a0e0e;
+            box-shadow: 0 0.4vh 1.2vh rgba(245, 196, 0, 0.35);
+        }
+
+        .btn-limpiar:hover {
+            background-color: #e0b000;
+            transform: scale(1.02);
+        }
+
+        /* ========== MENSAJES DE DJANGO ========== */
+        .messages {
+            width: 100%;
+            margin-bottom: 2vh;
+            display: flex;
+            flex-direction: column;
+            gap: 1vh;
+        }
+
+        .alert {
+            padding: 1.4vh 1.8vw;
+            border-radius: 0.9rem;
+            font-weight: 600;
+            font-size: clamp(0.85rem, 1vw, 1rem);
+            border-left: 0.4vw solid;
+        }
+
+        .alert-success {
+            background: #e6f7ec;
+            color: #1f7a3d;
+            border-color: #1f7a3d;
+        }
+
+        .alert-error,
+        .alert-danger {
+            background: #fdecec;
+            color: #b02b2b;
+            border-color: #b02b2b;
+        }
+
+        .alert-warning {
+            background: #fff8e1;
+            color: #8a6d00;
+            border-color: #f5c400;
+        }
+
+        .alert-info {
+            background: #e7f1fd;
+            color: #1a5fa8;
+            border-color: #1a5fa8;
+        }
+
+        /* ========== RESPONSIVE ========== */
+        @media (max-width: 820px) {
+            body {
+                padding: 3vh 3vw;
+            }
+
+            .header h1 {
+                font-size: clamp(1.4rem, 3.6vw, 2.4rem);
+            }
+
+            .form-card {
+                padding: 3vh 4vw;
+            }
+
+            .toggle-password {
+                right: 1vw;
+                font-size: clamp(1rem, 1.8vw, 1.3rem);
+            }
+
+            .form-actions button {
+                padding: 1.4vh 3.2vw;
+                font-size: clamp(0.9rem, 1.3vw, 1.05rem);
+            }
+
+            .btn-volver {
+                padding: 1vh 2vw;
+                font-size: clamp(0.8rem, 1.4vw, 1rem);
+                top: 2vh;
+                left: 2vw;
+            }
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 2.4vh 3vw;
+            }
+
+            .header {
+                padding: 2vh 3vw;
+                border-left-width: 1vw;
+            }
+
+            .header h1 {
+                font-size: clamp(1.2rem, 4.5vw, 2rem);
+            }
+
+            .header p {
+                font-size: clamp(0.8rem, 2vw, 1rem);
+            }
+
+            .form-card {
+                padding: 2.4vh 4.5vw;
+                border-left-width: 1.2vw;
+            }
+
+            .form-card h2 {
+                font-size: clamp(1.2rem, 3.8vw, 1.7rem);
+            }
+
+            .form-actions {
+                flex-direction: column-reverse;
+                gap: 1.2vh;
+            }
+
+            .form-actions button {
+                width: 100%;
+                max-width: none;
+                justify-content: center;
+                padding: 1.6vh 2vw;
+            }
+
+            .toggle-password {
+                right: 1.6vw;
+                font-size: clamp(1rem, 3vw, 1.4rem);
+            }
+
+            .password-wrapper input {
+                padding-right: 8vw;
+            }
+
+            .btn-volver {
+                padding: 1vh 2.6vw;
+                font-size: clamp(0.75rem, 2.2vw, 0.95rem);
+                top: 1.6vh;
+                left: 2vw;
+                gap: 0.8vw;
+            }
+
+            .password-hint {
+                font-size: clamp(0.7rem, 2vw, 0.85rem);
+                padding: 1vh 3vw;
+            }
+        }
+
+        @media (max-width: 400px) {
+            body {
+                padding: 2vh 2vw;
+            }
+
+            .header h1 {
+                font-size: clamp(1rem, 5vw, 1.6rem);
+            }
+
+            .form-card {
+                padding: 2vh 3.5vw;
+            }
+
+            .toggle-password {
+                right: 2vw;
+            }
+
+            .password-wrapper input {
+                padding-right: 10vw;
+            }
+
+            .btn-volver {
+                padding: 0.8vh 3vw;
+                font-size: clamp(0.7rem, 2.6vw, 0.85rem);
+                top: 1.2vh;
+                left: 1.5vw;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <button type="button" class="btn-volver" id="btnVolver">
+        <span class="arrow">←</span> Volver
+    </button>
+
+    <!-- ===== CONTENIDO ===== -->
+    <main class="content">
+        <div class="header">
+            <h1>Actualizar Administrador municipal</h1>
+            <p>Modifica los campos que deseas actualizar</p>
+        </div>
+
+        <!-- ===== MENSAJES DE DJANGO ===== -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ===== FORMULARIO ===== -->
+        <div class="form-card">
+            <h2>Datos del usuario</h2>
+
+            <form id="registroForm" autocomplete="off" novalidate method="POST"
+                action="{% url 'Actualizar-Administrador' administrador.id %}">
+                {% csrf_token %}
+                <div class="form-grid">
+
+                    <!-- Nombre -->
+                    <div class="form-group">
+                        <label for="nombre"><i>●</i> Nombre</label>
+                        <input type="text" id="nombre" name="nombre" placeholder="Ej: María"
+                            value="{{ administrador.nombre|default:'' }}" required>
+                    </div>
+
+                    <!-- Apellidos -->
+                    <div class="form-group">
+                        <label for="apellidos"><i>●</i> Apellidos</label>
+                        <input type="text" id="apellidos" name="apellidos" placeholder="Ej: López Martínez"
+                            value="{{ administrador.apellidos|default:'' }}" required>
+                    </div>
+
+                    <!-- Cédula -->
+                    <div class="form-group">
+                        <label for="cedula"><i>●</i> Cédula</label>
+                        <input type="number" id="cedula" name="cedula" placeholder="Ej: 0801199012345" min="1" step="1"
+                            value="{{ administrador.cedula|default:'' }}" required>
+                    </div>
+
+                    <!-- Correo -->
+                    <div class="form-group">
+                        <label for="correo"><i>✉</i> Correo electrónico</label>
+                        <input type="email" id="correo" name="correo" placeholder="usuario@gmail.com"
+                            autocomplete="email" value="{{ administrador.correo|default:'' }}" required>
+                        <small id="correoError"></small>
+                    </div>
+
+                    <!-- Contraseña con toggle + validación -->
+                    <div class="form-group">
+                        <label for="password"><i>🔒</i> Contraseña</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" name="password"
+                                placeholder="Dejar vacío para conservar la actual" minlength="8"
+                                pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=\[\]{};':&quot;\\|,.<>\/?]).{8,}$"
+                                title="Mínimo 8 caracteres, con al menos una mayúscula, una minúscula, un número y un símbolo especial.">
+                            <button type="button" class="toggle-password" id="togglePassword"
+                                aria-label="Mostrar u ocultar contraseña">
+                                👁️
+                            </button>
+                        </div>
+
+                        <div class="password-note">
+                            ℹ️ Si dejas este campo vacío, se conservará la contraseña actual.
+                        </div>
+
+                        <!-- Indicador de requisitos -->
+                        <div class="password-hint" id="passwordHint">
+                            <span class="req" data-req="length"><span class="icon">✗</span> Mínimo 8 caracteres</span>
+                            <span class="req" data-req="lower"><span class="icon">✗</span> Al menos una letra
+                                minúscula</span>
+                            <span class="req" data-req="upper"><span class="icon">✗</span> Al menos una letra
+                                mayúscula</span>
+                            <span class="req" data-req="number"><span class="icon">✗</span> Al menos un número
+                                (0-9)</span>
+                            <span class="req" data-req="symbol"><span class="icon">✗</span> Al menos un símbolo especial
+                                (!@#$%...)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="form-actions">
+                    <button type="button" class="btn-limpiar" id="btnLimpiar">Restaurar</button>
+                    <button type="submit" class="btn-registrar" id="btnRegistrar">Actualizar Usuario</button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        (function () {
+            // ===== ELEMENTOS =====
+            const toggleBtn = document.getElementById('togglePassword');
+            const passwordInput = document.getElementById('password');
+            const passwordHint = document.getElementById('passwordHint');
+            const btnLimpiar = document.getElementById('btnLimpiar');
+            const form = document.getElementById('registroForm');
+            const correoInput = document.getElementById('correo');
+            const correoError = document.getElementById('correoError');
+            const btnRegistrar = document.getElementById('btnRegistrar');
+
+            // ===== VALORES ORIGINALES (para restaurar) =====
+            const valoresOriginales = {
+                nombre: "{{ administrador.nombre|default:''|escapejs }}",
+                apellidos: "{{ administrador.apellidos|default:''|escapejs }}",
+                cedula: "{{ administrador.cedula|default:''|escapejs }}",
+                correo: "{{ administrador.correo|default:''|escapejs }}"
+            };
+
+            // ===== REQUISITOS DE CONTRASEÑA =====
+            const REGEX = {
+                length: val => val.length >= 8,
+                lower: val => /[a-z]/.test(val),
+                upper: val => /[A-Z]/.test(val),
+                number: val => /[0-9]/.test(val),
+                symbol: val => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val)
+            };
+
+            // ===== DOMINIOS PERMITIDOS =====
+            const DOMINIOS_PERMITIDOS = [
+                'gmail.com',
+                'hotmail.com',
+                'outlook.com'
+            ];
+
+            // ===== TOGGLE CONTRASEÑA =====
+            toggleBtn.addEventListener('click', function () {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                toggleBtn.textContent = type === 'password' ? '👁️' : '🙈';
+            });
+
+            // ===== ACTUALIZAR INDICADOR =====
+            function actualizarHint() {
+                const val = passwordInput.value;
+                let todosOk = true;
+
+                Object.keys(REGEX).forEach(key => {
+                    const span = passwordHint.querySelector(`[data-req="${key}"]`);
+                    const icon = span.querySelector('.icon');
+                    const ok = REGEX[key](val);
+
+                    if (ok) {
+                        span.classList.add('ok');
+                        icon.textContent = '✓';
+                    } else {
+                        span.classList.remove('ok');
+                        icon.textContent = '✗';
+                        todosOk = false;
+                    }
+                });
+
+                if (val.length === 0) {
+                    passwordInput.classList.remove('valid', 'invalid');
+                } else if (todosOk) {
+                    passwordInput.classList.add('valid');
+                    passwordInput.classList.remove('invalid');
+                } else {
+                    passwordInput.classList.add('invalid');
+                    passwordInput.classList.remove('valid');
+                }
+
+                return todosOk;
+            }
+
+            passwordInput.addEventListener('input', actualizarHint);
+
+            // ===== VALIDACIÓN DE CONTRASEÑA (solo si tiene valor) =====
+            function validarPassword() {
+                const val = passwordInput.value;
+
+                // Si está vacío, es válido (se conserva la actual)
+                if (val.length === 0) return [];
+
+                const errores = [];
+                if (!REGEX.length(val)) errores.push('al menos 8 caracteres');
+                if (!REGEX.lower(val)) errores.push('una letra minúscula');
+                if (!REGEX.upper(val)) errores.push('una letra mayúscula');
+                if (!REGEX.number(val)) errores.push('un número (0-9)');
+                if (!REGEX.symbol(val)) errores.push('un símbolo especial (!@#$%...)');
+                return errores;
+            }
+
+            // ===== VALIDACIÓN DE CORREO =====
+            function mostrarErrorCorreo(mensaje) {
+                correoError.textContent = '⚠️ ' + mensaje;
+                correoError.style.display = 'block';
+                correoInput.classList.add('invalid');
+                correoInput.classList.remove('valid');
+            }
+
+            function limpiarErrorCorreo() {
+                correoError.textContent = '';
+                correoError.style.display = 'none';
+                correoInput.classList.remove('invalid');
+                correoInput.classList.add('valid');
+            }
+
+            function validarCorreo() {
+                const valor = correoInput.value.trim().toLowerCase();
+
+                if (!valor) {
+                    mostrarErrorCorreo('Ingresa tu correo electrónico.');
+                    return false;
+                }
+
+                const regexFormato = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!regexFormato.test(valor)) {
+                    mostrarErrorCorreo('El formato del correo no es válido.');
+                    return false;
+                }
+
+                const dominio = valor.split('@')[1];
+
+                if (!DOMINIOS_PERMITIDOS.includes(dominio)) {
+                    mostrarErrorCorreo('Solo se permiten correos Gmail, Hotmail u Outlook.');
+                    return false;
+                }
+
+                limpiarErrorCorreo();
+                return true;
+            }
+
+            correoInput.addEventListener('input', function () {
+                if (correoInput.value.trim() === '') {
+                    correoError.style.display = 'none';
+                    correoInput.classList.remove('valid', 'invalid');
+                    return;
+                }
+                validarCorreo();
+            });
+
+            correoInput.addEventListener('blur', function () {
+                if (correoInput.value.trim() !== '') {
+                    validarCorreo();
+                }
+            });
+
+            // ===== BOTÓN RESTAURAR =====
+            btnLimpiar.addEventListener('click', function () {
+                document.getElementById('nombre').value = valoresOriginales.nombre;
+                document.getElementById('apellidos').value = valoresOriginales.apellidos;
+                document.getElementById('cedula').value = valoresOriginales.cedula;
+                correoInput.value = valoresOriginales.correo;
+
+                // Limpiar contraseña (se conservará la actual)
+                passwordInput.value = '';
+                passwordInput.setAttribute('type', 'password');
+                toggleBtn.textContent = '👁️';
+                passwordInput.classList.remove('valid', 'invalid');
+
+                correoInput.classList.remove('valid', 'invalid');
+                correoError.style.display = 'none';
+                actualizarHint();
+                document.getElementById('nombre').focus();
+            });
+
+            // ===== ENVÍO DEL FORMULARIO =====
+            form.addEventListener('submit', function (e) {
+                const nombre = document.getElementById('nombre').value.trim();
+                const apellidos = document.getElementById('apellidos').value.trim();
+                const cedula = document.getElementById('cedula').value.trim();
+                const correo = correoInput.value.trim();
+                const password = passwordInput.value;
+
+                // Validación de campos obligatorios (excepto password)
+                if (!nombre || !apellidos || !cedula || !correo) {
+                    e.preventDefault();
+                    alert('⚠️ Por favor completa todos los campos obligatorios.');
+                    return;
+                }
+
+                // Validación del correo
+                if (!validarCorreo()) {
+                    e.preventDefault();
+                    alert('⚠️ ' + correoError.textContent.replace('⚠️ ', ''));
+                    correoInput.focus();
+                    return;
+                }
+
+                // Validación de contraseña (solo si se escribió algo)
+                if (password.length > 0) {
+                    const erroresPass = validarPassword();
+                    if (erroresPass.length > 0) {
+                        e.preventDefault();
+                        alert('⚠️ La contraseña debe contener:\n- ' + erroresPass.join('\n- '));
+                        passwordInput.focus();
+                        return;
+                    }
+                }
+
+                // Deshabilitar botón para evitar doble envío
+                btnRegistrar.disabled = true;
+                btnRegistrar.textContent = 'Actualizando...';
+            });
+
+            // Enfocar el primer campo al cargar
+            document.getElementById('nombre').focus();
+
+            // ===== BOTÓN VOLVER =====
+            document.getElementById('btnVolver').addEventListener('click', function () {
+                window.location.href = "{% url 'Municipios' %}";
+            });
+        })();
+    </script>
+
+</body>
+
+</html>

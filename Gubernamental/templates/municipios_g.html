@@ -965,6 +965,15 @@
         </div>
     </div>
 
+    <!-- ===== MENSAJES DE DJANGO (se convierten a toasts) ===== -->
+    {% if messages %}
+    <div id="djangoMessages" style="display:none;">
+        {% for message in messages %}
+        <div data-tag="{{ message.tags }}" data-text="{{ message|escapejs }}"></div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- ===== CONTENEDOR DE NOTIFICACIONES (TOASTS) ===== -->
     <div id="toastContainer" aria-live="polite" aria-atomic="true"></div>
 
@@ -986,6 +995,7 @@
             const URL_AGREGAR = "{% url 'Agregar-Municipio' %}";
             const URL_ELIMINAR = "{% url 'Eliminar-Municipio' %}";
             const URL_AGREGAR_ADMIN = "{% url 'Agregar-Administrador' %}";
+            const URL_ACTUALIZAR_ADMIN = "{% url 'Actualizar-Administrador' 0 %}"; // se reemplaza el 0 por el id real
             const URL_ELIMINAR_ADMIN = "{% url 'Eliminar-Administrador' %}";
             const ICONOS = {
                 success: '✅',
@@ -1054,6 +1064,40 @@
                 // Auto-cierre
                 timeoutId = setTimeout(remover, duracion);
             }
+
+            /* ============================================================
+             * ========== MOSTRAR MENSAJES DE DJANGO COMO TOASTS ==========
+             * ============================================================ */
+            (function mostrarMensajesDjango() {
+                const contenedor = document.getElementById('djangoMessages');
+                if (!contenedor) return;
+
+                const nodos = contenedor.querySelectorAll('[data-tag]');
+                nodos.forEach((nodo, idx) => {
+                    const tag = (nodo.getAttribute('data-tag') || '').toLowerCase();
+                    const texto = nodo.getAttribute('data-text') || '';
+
+                    let variante = 'info';
+                    let titulo = 'Aviso';
+
+                    if (tag.includes('success')) {
+                        variante = 'success';
+                        titulo = 'Éxito';
+                    } else if (tag.includes('error') || tag.includes('danger')) {
+                        variante = 'error';
+                        titulo = 'Error';
+                    } else if (tag.includes('warning')) {
+                        variante = 'warning';
+                        titulo = 'Advertencia';
+                    }
+
+                    // Pequeño retardo escalonado por si hay varios mensajes
+                    setTimeout(() => crearToast(variante, titulo, texto), idx * 250);
+                });
+
+                // Limpiar el contenedor para que no se dupliquen si el usuario navega atrás
+                contenedor.remove();
+            })();
 
             /**
              * Muestra el mensaje correspondiente según el tipo devuelto
@@ -1249,18 +1293,29 @@
 
                 const item = boton.closest('.list-item');
                 const idMunicipio = item ? item.getAttribute('data-id') : '';
+                const idUsuario = item ? item.getAttribute('data-id-usuario') : '';
 
+                // ---- Si es ACTUALIZAR, redirigir a Actualizar-Administrador/<id> ----
+                if (boton.classList.contains('actualizar')) {
+                    if (!idUsuario) {
+                        crearToast('warning', 'Sin administrador', 'No se pudo identificar el administrador.');
+                        return;
+                    }
+                    // La URL ya viene con un "0" al final: lo reemplazamos por el id real
+                    const urlFinal = URL_ACTUALIZAR_ADMIN.replace(/0\/?$/, idUsuario + '/');
+                    window.location.href = urlFinal;
+                    return;
+                }
+
+                // ---- Si es AGREGAR, mantener el comportamiento original ----
                 if (!idMunicipio) {
                     crearToast('warning', 'Sin municipio', 'No se pudo identificar el municipio.');
                     return;
                 }
 
-                // Detecta si es alta o edición y se lo pasa al backend
-                const modo = boton.classList.contains('actualizar') ? 'actualizar' : 'agregar';
-
                 window.location.href = URL_AGREGAR_ADMIN
                     + '?id_municipio=' + encodeURIComponent(idMunicipio)
-                    + '&modo=' + modo;
+                    + '&modo=agregar';
             });
 
             /* ============================================================

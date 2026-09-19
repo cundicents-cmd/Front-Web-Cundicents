@@ -15,5 +15,6 @@ urlpatterns = [
     #Gestion de Administradores
     path('Municipios/Agregar-Administrador', VG.agregar_administrador, name="Agregar-Administrador"),
     path('Municipios/Registrar-Administrador', VG.registrar_administrador, name="Registrar-Administrador"),
-    path('Municipios/Eliminar-Administrador', VG.eliminar_administrador, name="Eliminar-Administrador"),         
+    path('Municipios/Eliminar-Administrador', VG.eliminar_administrador, name="Eliminar-Administrador"), 
+    path('Municipios/Actualizar-Administrador/<int:id>/', VG.actualizar_administrador, name="Actualizar-Administrador"),
 ]

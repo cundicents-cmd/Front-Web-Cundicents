@@ -483,12 +483,11 @@
             <img src="{% static 'img/log.png' %}" alt="Logo institucional">
         </div>
         <ul class="menu">
-            <li><a href="inicio_g.html" class="active">Inicio</a></li>
+            <li><a href="{% url 'Gobernacion'%}" class="active">Inicio</a></li>
             <li><a href="{% url 'Municipios'%}">Municipios</a></li>
             <li><a href="#">Incidentes</a></li>
-            <li><a href="reportes_g.html">Reportes</a></li>
-            <li><a href="configuracion_g.html">Configuración</a></li>
-            <li><a href="{% url 'Logout' %}">Cerrar sesion</a></li>
+            <li><a href="#">Reportes</a></li>
+            <li><a href="{% url 'Actualizar-Usuario'%}">Configuración</a></li>
         </ul>
     </aside>
 

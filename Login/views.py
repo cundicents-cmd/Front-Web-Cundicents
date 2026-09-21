@@ -48,7 +48,7 @@ def login_view(request):
                 grupo = grupos_usuario[0]
                 match grupo:
                     case "Gubernamental":
-                        return redirect("Gubernamental")
+                        return redirect("Gobernacion")
                     case "Municipal":
                         return HttpResponse(html2)
                         # return redirect("Municipal")

@@ -19,7 +19,7 @@ from django.urls import path, include
 import Login.views as LV
 
 urlpatterns = [
-    #path('admin/', admin.site.urls),
+    path('admin/', admin.site.urls),
     path('', LV.login_view, name="Login"),
     path('Logout', LV.logout_g, name="Logout"),
     path('No-Autorizado/', LV.acceso_denegado, name='no_autorizado'),

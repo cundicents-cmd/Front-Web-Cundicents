@@ -74,7 +74,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'cundicents.wsgi.application'
-
+LOGIN_URL = 'Login'
 
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases

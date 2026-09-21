@@ -4,7 +4,7 @@ import Gubernamental.views as VG
 
 #Rutas Gerente
 urlpatterns = [
-    path('', VG.inicio_gubernamental, name="Gubernamental"),
+    path('', VG.inicio_gubernamental, name="Gobernacion"),
 
     #Gestion de municipios y sus administradores
     path('Municipios', VG.gestion_municipios, name="Municipios"),
@@ -17,4 +17,8 @@ urlpatterns = [
     path('Municipios/Registrar-Administrador', VG.registrar_administrador, name="Registrar-Administrador"),
     path('Municipios/Eliminar-Administrador', VG.eliminar_administrador, name="Eliminar-Administrador"), 
     path('Municipios/Actualizar-Administrador/<int:id>/', VG.actualizar_administrador, name="Actualizar-Administrador"),
+
+    #Actualizacion de datos del usuario
+    path('Configuracion', VG.actualizar_usuario, name="Actualizar-Usuario"),
+    
 ]

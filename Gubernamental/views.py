@@ -1,32 +1,28 @@
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect
 from .models import VerMunicipios, VerUsuarios
 from django.db import connection
 from django.http import JsonResponse
+from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.hashers import make_password
 from cundicents.decorators import group_required
 from django.contrib import messages
 from django.views.decorators.http import require_POST
 
 
-@login_required
 @group_required("Gubernamental")
 def inicio_gubernamental(request):
     #granjas = VerGranjas.objects.all()
     #context = {"granjas": granjas,}
     return render(request, "inicio_g.html")
 
-# ==========================================================
-# Views de la seccion de gestion de municipios
-# ==========================================================
-@login_required
+
+# Views de la seccion de municipios
 @group_required("Gubernamental")
 def gestion_municipios(request):
     municipios = VerMunicipios.objects.all()
     return render(request, 'municipios_g.html', {'municipios': municipios})
 
-@login_required
 @group_required("Gubernamental")
 def agregar_municipio(request):
     nombre = request.POST.get('nombre', '').strip()
@@ -37,7 +33,6 @@ def agregar_municipio(request):
     except Exception as e:
         return JsonResponse({'ok': False, 'tipo': 'municipio_error', 'mensaje': 'Ocurrió un error al crear el municipio.', 'error': str(e)}, status=500)
 
-@login_required
 @group_required("Gubernamental")
 def eliminar_municipio(request):
     if request.method == 'POST':
@@ -58,10 +53,8 @@ def eliminar_municipio(request):
             return JsonResponse({'ok': False, 'tipo': 'municipio_error', 'mensaje': 'Ocurrió un error al eliminar el municipio.', 'error': f'Error: {str(e)}'}, status=500)
 
 
-# ==========================================================
+
 # Views de gestion de administradores
-# ==========================================================
-@login_required
 @group_required("Gubernamental")
 def agregar_administrador(request):
     id = request.GET.get('id_municipio', '').strip()
@@ -70,7 +63,6 @@ def agregar_administrador(request):
     contexto = {'id_municipio': id}
     return render(request, 'agregar_administrador_g.html', contexto)
 
-@login_required
 @group_required("Gubernamental")
 def registrar_administrador(request):
     id_municipio = request.GET.get('id_municipio', '').strip()
@@ -118,7 +110,6 @@ def registrar_administrador(request):
 
     return render(request, 'agregar_administrador_g.html', contexto)
 
-@login_required
 @group_required("Gubernamental")
 @require_POST
 def eliminar_administrador(request):
@@ -131,7 +122,6 @@ def eliminar_administrador(request):
     except Exception as e:
         return JsonResponse({'ok': False, 'tipo': 'administrador_error', 'mensaje': 'Ocurrió un error al eliminar el administrador.', 'error': str(e)}, status=500)
 
-@login_required
 @group_required("Gubernamental")
 def actualizar_administrador(request, id):
     # ===== Obtener el administrador =====
@@ -168,10 +158,12 @@ def actualizar_administrador(request, id):
             'administrador': administrador
         })
 
-    # ----- Guardar cambios -----
     try:
+        if password == "": passw = None
+        else: passw = make_password(password)
+        
         with connection.cursor() as cursor:
-            cursor.callproc('actualizar_Usuario', [id , nombre, apellidos, cedula, correo, make_password(password)])
+            cursor.callproc('actualizar_Usuario', [id , nombre, apellidos, cedula, correo, passw])
         messages.success(request, 'Administrador actualizado correctamente.')
         return redirect('Municipios')
 
@@ -181,4 +173,39 @@ def actualizar_administrador(request, id):
         return render(request, 'actualizar_administrador_g.html', {
             'administrador': administrador
         })
-      
+
+# Views para la seccion de configuracion
+@group_required("Gubernamental")
+def actualizar_usuario(request):
+    user = request.user
+    id = user.id
+
+    if request.method == 'POST':
+        nombre    = request.POST.get('nombre', '').strip()
+        apellidos = request.POST.get('apellidos', '').strip()
+        cedula    = request.POST.get('cedula', '').strip()
+        correo    = request.POST.get('correo', '').strip()
+        password  = (request.POST.get('password') or '').strip()
+
+        if password == "": passw = None
+        else: passw = make_password(password)
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.callproc('actualizar_Usuario', [id, nombre, apellidos, cedula, correo, passw])
+
+            if passw != None:
+                user.password = passw
+                update_session_auth_hash(request, user)
+
+            messages.success(request, 'Datos actualizados correctamente.')
+            return redirect('Actualizar-Usuario')
+
+        except Exception as e:
+            messages.error(request, f'Ocurrió un error al actualizar el administrador: {e}')
+            usuario = VerUsuarios.objects.get(id=id)
+            return render(request, 'configuracion_g.html', {'usuario': usuario})
+
+    usuario = VerUsuarios.objects.get(id=id)
+    context = {'usuario': usuario, }
+    return render(request, 'configuracion_g.html', context)

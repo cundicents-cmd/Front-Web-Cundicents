@@ -4,30 +4,6 @@ from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 
-html2 = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Inicio</title>
-    </head>
-    <body>
-        <h1>Hola Municipal</h1>
-    </body>
-    </html>
-    """
-html3 = """
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Inicio</title>
-    </head>
-    <body>
-        <h1>Hola Encargado</h1>
-    </body>
-    </html>
-    """
-
-
 def login_view(request):
     error = None
     if request.method == "POST":
@@ -50,11 +26,9 @@ def login_view(request):
                     case "Gubernamental":
                         return redirect("Gobernacion")
                     case "Municipal":
-                        return HttpResponse(html2)
-                        # return redirect("Municipal")
+                        return redirect("Municipalidad")
                     case "Encargado":
-                        return HttpResponse(html3)
-                        # return redirect("Encargado")
+                        return redirect("Encargado")
                     case _:
                         error = "No perteneces a un grupo válido."
                         return redirect("Login")

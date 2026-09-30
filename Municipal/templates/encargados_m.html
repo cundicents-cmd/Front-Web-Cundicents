@@ -128,7 +128,6 @@
             flex: 1 1 auto;
         }
 
-        /* Cada área: encabezado + lista de personas */
         .area-card {
             background-color: white;
             border-radius: 1.2rem;
@@ -194,26 +193,16 @@
             color: #1e1e1e;
         }
 
-        .person-info .cargo {
-            font-size: clamp(0.75rem, 0.9vw, 1rem);
-            color: #555;
-        }
-
-        .person-info .email {
-            font-size: clamp(0.7rem, 0.8vw, 0.95rem);
+        /* Mensaje cuando un área no tiene encargados */
+        .empty-msg {
+            font-size: clamp(0.8rem, 1vw, 1rem);
             color: #7a6a4a;
-        }
-
-        .person-badge {
-            background: #ecf3fa;
-            color: #1e3c5a;
-            padding: 0.15vh 0.8vw;
-            border-radius: 2rem;
-            font-size: clamp(0.65rem, 0.8vw, 0.9rem);
-            font-weight: 500;
-            display: inline-block;
-            align-self: flex-start;
-            margin-top: 0.2vh;
+            font-style: italic;
+            padding: 1.2vh 0.6vw;
+            text-align: center;
+            border: 1px dashed #e0d3ac;
+            border-radius: 0.8rem;
+            background: #fdfaf0;
         }
 
         /* ===== MODAL ===== */
@@ -319,6 +308,16 @@
             color: #1f1a10;
             text-align: right;
             max-width: 60%;
+            word-break: break-word;
+        }
+
+        .modal-item .value.code {
+            font-family: 'Consolas', 'Courier New', monospace;
+            background: #f5f1e3;
+            padding: 0.05rem 0.5rem;
+            border-radius: 0.4rem;
+            font-size: 0.88em;
+            color: #6a5330;
         }
 
         .modal-footer {
@@ -372,12 +371,17 @@
             background-color: #8f1f1f;
         }
 
+        .modal-footer .btn-eliminar:disabled {
+            background-color: #d9a2a2;
+            cursor: not-allowed;
+        }
+
         .modal-footer .btn-group {
             display: flex;
             gap: 0.8rem;
         }
 
-        /* ===== BOTÓN FLOTANTE "AGREGAR ENCARGADO" ===== */
+        /* ===== BOTÓN FLOTANTE ===== */
         .btn-flotante {
             position: fixed;
             bottom: 2.5rem;
@@ -398,6 +402,7 @@
             z-index: 999;
             border: 1px solid rgba(255, 255, 255, 0.2);
             letter-spacing: 0.4px;
+            text-decoration: none;
         }
 
         .btn-flotante:hover {
@@ -408,6 +413,37 @@
 
         .btn-flotante i {
             font-size: 1.2rem;
+        }
+
+        /* ===== TOAST DE NOTIFICACIÓN ===== */
+        .toast {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: #1f8b4c;
+            color: white;
+            padding: 1rem 1.6rem;
+            border-radius: 0.8rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            font-weight: 600;
+            z-index: 2000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .toast.error {
+            background: #b02b2b;
         }
 
         /* ===== RESPONSIVE ===== */
@@ -553,6 +589,13 @@
                 padding: 0.7rem 1.2rem;
                 font-size: 0.85rem;
             }
+
+            .toast {
+                top: 1rem;
+                right: 1rem;
+                left: 1rem;
+                justify-content: center;
+            }
         }
 
         @media (max-width: 400px) {
@@ -613,20 +656,189 @@
     <main class="content">
         <div class="header">
             <h1>Áreas de Gestión</h1>
-            <p>Encargados por área · Seguridad y convivencia, Accidente, Gestión del riesgo, Infraestructura, Servicios
-                públicos, Ambiental, Salud pública</p>
+            <p>Encargados por área · Seguridad y convivencia, Accidente, Gestión del riesgo, Infraestructura,
+                Servicios públicos, Ambiental, Salud pública</p>
         </div>
+
+        <!-- MENSAJES DJANGO (ocultos, se muestran como toast con JS) -->
+        {% if messages %}
+        <div id="djangoMessages" style="display:none;">
+            {% for message in messages %}
+            <div data-tag="{{ message.tags }}" data-text="{{ message|escapejs }}"></div>
+            {% endfor %}
+        </div>
+        {% endif %}
 
         <!-- LISTADO DE ÁREAS EN COLUMNAS -->
         <div class="list-container" id="listContainer">
-            <!-- Se inyecta con JavaScript -->
+
+            <!-- ===== 1. SEGURIDAD Y CONVIVENCIA ===== -->
+            <div class="area-card" data-area="Seguridad y convivencia">
+                <div class="area-header">
+                    <i class="fas fa-shield-halved"></i>
+                    Seguridad y convivencia
+                </div>
+                <div class="area-body">
+                    {% for enc in encargados_SyC %}
+                    <div class="person-item" data-id-usuario="{{ enc.id_usuario }}" data-nombre="{{ enc.nombre }}"
+                        data-apellido="{{ enc.apellido }}" data-correo="{{ enc.correo }}" data-cedula="{{ enc.cedula }}"
+                        data-id-municipio="{{ enc.id_municipio }}" data-id-tp-incidente="{{ enc.id_tp_incidente }}"
+                        data-tp-incidente="{{ enc.tp_incidente }}" data-area="Seguridad y convivencia">
+                        <div class="person-info">
+                            <span class="nombre">{{ enc.nombre }} {{ enc.apellido }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-msg">Sin encargados asignados</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- ===== 2. ACCIDENTE ===== -->
+            <div class="area-card" data-area="Accidente">
+                <div class="area-header">
+                    <i class="fas fa-car-crash"></i>
+                    Accidente
+                </div>
+                <div class="area-body">
+                    {% for enc in encargados_Ac %}
+                    <div class="person-item" data-id-usuario="{{ enc.id_usuario }}" data-nombre="{{ enc.nombre }}"
+                        data-apellido="{{ enc.apellido }}" data-correo="{{ enc.correo }}" data-cedula="{{ enc.cedula }}"
+                        data-id-municipio="{{ enc.id_municipio }}" data-id-tp-incidente="{{ enc.id_tp_incidente }}"
+                        data-tp-incidente="{{ enc.tp_incidente }}" data-area="Accidente">
+                        <div class="person-info">
+                            <span class="nombre">{{ enc.nombre }} {{ enc.apellido }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-msg">Sin encargados asignados</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- ===== 3. GESTIÓN DEL RIESGO ===== -->
+            <div class="area-card" data-area="Gestión del riesgo">
+                <div class="area-header">
+                    <i class="fas fa-triangle-exclamation"></i>
+                    Gestión del riesgo
+                </div>
+                <div class="area-body">
+                    {% for enc in encargados_GdR %}
+                    <div class="person-item" data-id-usuario="{{ enc.id_usuario }}" data-nombre="{{ enc.nombre }}"
+                        data-apellido="{{ enc.apellido }}" data-correo="{{ enc.correo }}" data-cedula="{{ enc.cedula }}"
+                        data-id-municipio="{{ enc.id_municipio }}" data-id-tp-incidente="{{ enc.id_tp_incidente }}"
+                        data-tp-incidente="{{ enc.tp_incidente }}" data-area="Gestión del riesgo">
+                        <div class="person-info">
+                            <span class="nombre">{{ enc.nombre }} {{ enc.apellido }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-msg">Sin encargados asignados</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- ===== 4. INFRAESTRUCTURA ===== -->
+            <div class="area-card" data-area="Infraestructura">
+                <div class="area-header">
+                    <i class="fas fa-road"></i>
+                    Infraestructura
+                </div>
+                <div class="area-body">
+                    {% for enc in encargados_I %}
+                    <div class="person-item" data-id-usuario="{{ enc.id_usuario }}" data-nombre="{{ enc.nombre }}"
+                        data-apellido="{{ enc.apellido }}" data-correo="{{ enc.correo }}" data-cedula="{{ enc.cedula }}"
+                        data-id-municipio="{{ enc.id_municipio }}" data-id-tp-incidente="{{ enc.id_tp_incidente }}"
+                        data-tp-incidente="{{ enc.tp_incidente }}" data-area="Infraestructura">
+                        <div class="person-info">
+                            <span class="nombre">{{ enc.nombre }} {{ enc.apellido }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-msg">Sin encargados asignados</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- ===== 5. SERVICIOS PÚBLICOS ===== -->
+            <div class="area-card" data-area="Servicios públicos">
+                <div class="area-header">
+                    <i class="fas fa-water"></i>
+                    Servicios públicos
+                </div>
+                <div class="area-body">
+                    {% for enc in encargados_SePu %}
+                    <div class="person-item" data-id-usuario="{{ enc.id_usuario }}" data-nombre="{{ enc.nombre }}"
+                        data-apellido="{{ enc.apellido }}" data-correo="{{ enc.correo }}" data-cedula="{{ enc.cedula }}"
+                        data-id-municipio="{{ enc.id_municipio }}" data-id-tp-incidente="{{ enc.id_tp_incidente }}"
+                        data-tp-incidente="{{ enc.tp_incidente }}" data-area="Servicios públicos">
+                        <div class="person-info">
+                            <span class="nombre">{{ enc.nombre }} {{ enc.apellido }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-msg">Sin encargados asignados</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- ===== 6. AMBIENTAL ===== -->
+            <div class="area-card" data-area="Ambiental">
+                <div class="area-header">
+                    <i class="fas fa-leaf"></i>
+                    Ambiental
+                </div>
+                <div class="area-body">
+                    {% for enc in encargados_Am %}
+                    <div class="person-item" data-id-usuario="{{ enc.id_usuario }}" data-nombre="{{ enc.nombre }}"
+                        data-apellido="{{ enc.apellido }}" data-correo="{{ enc.correo }}" data-cedula="{{ enc.cedula }}"
+                        data-id-municipio="{{ enc.id_municipio }}" data-id-tp-incidente="{{ enc.id_tp_incidente }}"
+                        data-tp-incidente="{{ enc.tp_incidente }}" data-area="Ambiental">
+                        <div class="person-info">
+                            <span class="nombre">{{ enc.nombre }} {{ enc.apellido }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-msg">Sin encargados asignados</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- ===== 7. SALUD PÚBLICA ===== -->
+            <div class="area-card" data-area="Salud pública">
+                <div class="area-header">
+                    <i class="fas fa-heart-pulse"></i>
+                    Salud pública
+                </div>
+                <div class="area-body">
+                    {% for enc in encargados_SaPu %}
+                    <div class="person-item" data-id-usuario="{{ enc.id_usuario }}" data-nombre="{{ enc.nombre }}"
+                        data-apellido="{{ enc.apellido }}" data-correo="{{ enc.correo }}" data-cedula="{{ enc.cedula }}"
+                        data-id-municipio="{{ enc.id_municipio }}" data-id-tp-incidente="{{ enc.id_tp_incidente }}"
+                        data-tp-incidente="{{ enc.tp_incidente }}" data-area="Salud pública">
+                        <div class="person-info">
+                            <span class="nombre">{{ enc.nombre }} {{ enc.apellido }}</span>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-msg">Sin encargados asignados</div>
+                    {% endfor %}
+                </div>
+            </div>
+
         </div>
     </main>
 
     <!-- ===== BOTÓN FLOTANTE ===== -->
-    <button class="btn-flotante">
+    <a href="{% url 'Agregar-Encargado'%}" class="btn-flotante">
         <i class="fas fa-plus"></i> Agregar encargado
-    </button>
+    </a>
+
+    <!-- ===== TOAST DE NOTIFICACIÓN ===== -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastText">Encargado eliminado</span>
+    </div>
 
     <!-- ===== MODAL ===== -->
     <div class="modal-overlay" id="modalOverlay">
@@ -648,96 +860,13 @@
         </div>
     </div>
 
+    <!-- URL base para eliminación (el 0 se reemplaza por el ID real) -->
+    <script>
+        const URL_ELIMINAR_ENCARGADO = "{% url 'Eliminar-Encargado' 0 %}";
+    </script>
+
     <script>
         (function () {
-            // ===== DATOS: áreas y personas =====
-            const areas = [
-                { nombre: 'Seguridad y convivencia', icono: 'fa-shield-halved' },
-                { nombre: 'Accidente', icono: 'fa-car-crash' },
-                { nombre: 'Gestión del riesgo', icono: 'fa-triangle-exclamation' },
-                { nombre: 'Infraestructura', icono: 'fa-road' },
-                { nombre: 'Servicios públicos', icono: 'fa-water' },
-                { nombre: 'Ambiental', icono: 'fa-leaf' },
-                { nombre: 'Salud pública', icono: 'fa-heart-pulse' }
-            ];
-
-            const personasPorArea = [
-                [
-                    {
-                        nombre: 'María Fernanda López', cargo: 'Coordinadora de Convivencia', email: 'maria.lopez@seguridad.gov',
-                        telefono: '300-123-4567', area: 'Seguridad y convivencia'
-                    },
-                    {
-                        nombre: 'Carlos Andrés Ruiz', cargo: 'Analista de Seguridad', email: 'carlos.ruiz@seguridad.gov',
-                        telefono: '301-234-5678', area: 'Seguridad y convivencia'
-                    }
-                ],
-                [
-                    {
-                        nombre: 'Laura Valentina Gómez', cargo: 'Jefe de Atención de Accidentes', email: 'laura.gomez@accidente.gov',
-                        telefono: '302-345-6789', area: 'Accidente'
-                    },
-                    {
-                        nombre: 'Jorge Enrique Díaz', cargo: 'Especialista en Vialidad', email: 'jorge.diaz@accidente.gov',
-                        telefono: '303-456-7890', area: 'Accidente'
-                    }
-                ],
-                [
-                    {
-                        nombre: 'Ana María Rojas', cargo: 'Directora de Gestión del Riesgo', email: 'ana.rojas@riesgo.gov',
-                        telefono: '304-567-8901', area: 'Gestión del riesgo'
-                    },
-                    {
-                        nombre: 'Luis Eduardo Páez', cargo: 'Coordinador de Prevención', email: 'luis.paez@riesgo.gov',
-                        telefono: '305-678-9012', area: 'Gestión del riesgo'
-                    }
-                ],
-                [
-                    {
-                        nombre: 'Miguel Ángel Sánchez', cargo: 'Jefe de Infraestructura', email: 'miguel.sanchez@infra.gov',
-                        telefono: '306-789-0123', area: 'Infraestructura'
-                    },
-                    {
-                        nombre: 'Diana Carolina Ríos', cargo: 'Ingeniera Civil', email: 'diana.rios@infra.gov',
-                        telefono: '307-890-1234', area: 'Infraestructura'
-                    }
-                ],
-                [
-                    {
-                        nombre: 'José Alberto Vargas', cargo: 'Director de Servicios Públicos', email: 'jose.vargas@servicios.gov',
-                        telefono: '308-901-2345', area: 'Servicios públicos'
-                    },
-                    {
-                        nombre: 'Claudia Patricia Jiménez', cargo: 'Coordinadora de Agua Potable', email: 'claudia.jimenez@servicios.gov',
-                        telefono: '309-012-3456', area: 'Servicios públicos'
-                    }
-                ],
-                [
-                    {
-                        nombre: 'Sofía Elena Rivas', cargo: 'Jefe de Gestión Ambiental', email: 'sofia.rivas@ambiental.gov',
-                        telefono: '310-123-4567', area: 'Ambiental'
-                    },
-                    {
-                        nombre: 'David Fernando Castro', cargo: 'Coordinador de Residuos', email: 'david.castro@ambiental.gov',
-                        telefono: '311-234-5678', area: 'Ambiental'
-                    }
-                ],
-                [
-                    {
-                        nombre: 'Andrea Milena Quintero', cargo: 'Directora de Salud Pública', email: 'andrea.quintero@salud.gov',
-                        telefono: '312-345-6789', area: 'Salud pública'
-                    },
-                    {
-                        nombre: 'Ricardo Alberto Mejía', cargo: 'Coordinador de Epidemiología', email: 'ricardo.mejia@salud.gov',
-                        telefono: '313-456-7890', area: 'Salud pública'
-                    }
-                ]
-            ];
-
-            // Referencias DOM
-            const container = document.getElementById('listContainer');
-
-            // Modal
             const modalOverlay = document.getElementById('modalOverlay');
             const modalBody = document.getElementById('modalBody');
             const modalCloseBtn = document.getElementById('modalCloseBtn');
@@ -747,15 +876,65 @@
 
             let personaActual = null;
 
-            // ===== FUNCIÓN PARA ABRIR MODAL =====
-            function abrirModal(persona) {
-                personaActual = persona;
+            // ====== FUNCIÓN PARA OBTENER LA COOKIE CSRF ======
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+
+            // ====== TOAST ======
+            function mostrarToast(mensaje, esError = false) {
+                const toast = document.getElementById('toast');
+                const toastText = document.getElementById('toastText');
+                const icono = toast.querySelector('i');
+
+                toastText.textContent = mensaje;
+                toast.classList.toggle('error', esError);
+
+                if (icono) {
+                    icono.className = esError
+                        ? 'fas fa-exclamation-circle'
+                        : 'fas fa-check-circle';
+                }
+
+                toast.classList.add('show');
+                clearTimeout(toast._timeout);
+                toast._timeout = setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3500);
+            }
+
+            // Escapar HTML básico por seguridad
+            function esc(v) {
+                return (v === null || v === undefined || v === '')
+                    ? '—'
+                    : String(v)
+                        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+                        .replace(/'/g, '&#39;');
+            }
+
+            function abrirModal(d) {
+                personaActual = d;
                 modalBody.innerHTML = `
-                    <div class="modal-item"><span class="label">Nombre</span><span class="value"><strong>${persona.nombre}</strong></span></div>
-                    <div class="modal-item"><span class="label">Cargo</span><span class="value">${persona.cargo}</span></div>
-                    <div class="modal-item"><span class="label">Correo</span><span class="value">${persona.email}</span></div>
-                    <div class="modal-item"><span class="label">Teléfono</span><span class="value">${persona.telefono}</span></div>
-                    <div class="modal-item"><span class="label">Área</span><span class="value">${persona.area}</span></div>
+                    <div class="modal-item"><span class="label">Nombre completo</span>
+                        <span class="value"><strong>${esc(d.nombre)} ${esc(d.apellido)}</strong></span></div>
+                    <div class="modal-item"><span class="label">Correo</span>
+                        <span class="value">${esc(d.correo)}</span></div>
+                    <div class="modal-item"><span class="label">Cédula</span>
+                        <span class="value code">${esc(d.cedula)}</span></div>
+                    <div class="modal-item"><span class="label">Área</span>
+                        <span class="value">${esc(d.area)}</span></div>
                 `;
                 modalOverlay.classList.add('active');
                 document.body.style.overflow = 'hidden';
@@ -765,80 +944,111 @@
                 modalOverlay.classList.remove('active');
                 document.body.style.overflow = '';
                 personaActual = null;
+                modalEliminarBtn.disabled = false;
+                modalEliminarBtn.textContent = 'Eliminar';
             }
 
-            // Eventos de cierre del modal
             modalCloseBtn.addEventListener('click', cerrarModal);
             modalCerrarBtn.addEventListener('click', cerrarModal);
-            modalOverlay.addEventListener('click', function (e) {
+            modalOverlay.addEventListener('click', e => {
                 if (e.target === modalOverlay) cerrarModal();
             });
-            document.addEventListener('keydown', function (e) {
+            document.addEventListener('keydown', e => {
                 if (e.key === 'Escape') cerrarModal();
             });
 
-            // Botones de acción del modal (sin funcionalidad real)
-            modalModificarBtn.addEventListener('click', function () {
-                alert('[Simulación] Botón Modificar presionado (azul).');
+            modalModificarBtn.addEventListener('click', () => {
+                if (!personaActual) return;
+                alert('[Simulación] Modificar encargado #' + personaActual.idUsuario);
             });
+
+            // ====== BOTÓN ELIMINAR ======
             modalEliminarBtn.addEventListener('click', function () {
-                alert('[Simulación] Botón Eliminar presionado (rojo).');
+                if (!personaActual) return;
+
+                if (!confirm('¿Estás seguro de que deseas eliminar a ' +
+                    personaActual.nombre + ' ' + personaActual.apellido + '?')) {
+                    return;
+                }
+
+                const id = personaActual.idUsuario;
+                const csrftoken = getCookie('csrftoken');
+                const url = URL_ELIMINAR_ENCARGADO.replace('0', id);
+
+                modalEliminarBtn.disabled = true;
+                modalEliminarBtn.textContent = 'Eliminando...';
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({ id: id })
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => Promise.reject(err));
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.success) {
+                            const item = document.querySelector(
+                                `.person-item[data-id-usuario="${id}"]`
+                            );
+                            if (item) {
+                                const areaBody = item.closest('.area-body');
+                                item.remove();
+                                if (areaBody && areaBody.querySelectorAll('.person-item').length === 0) {
+                                    areaBody.innerHTML = '<div class="empty-msg">Sin encargados asignados</div>';
+                                }
+                            }
+                            cerrarModal();
+                            mostrarToast('Encargado eliminado correctamente');
+                        } else {
+                            modalEliminarBtn.disabled = false;
+                            modalEliminarBtn.textContent = 'Eliminar';
+                            mostrarToast('Error: ' + (data.error || 'No se pudo eliminar'), true);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        modalEliminarBtn.disabled = false;
+                        modalEliminarBtn.textContent = 'Eliminar';
+                        const msg = (error && error.error) ? error.error : 'Error al eliminar el encargado';
+                        mostrarToast(msg, true);
+                    });
             });
 
-            // ===== FUNCIÓN PARA RENDERIZAR ÁREAS Y PERSONAS =====
-            function render() {
-                let html = '';
-
-                areas.forEach((area, idx) => {
-                    const personas = personasPorArea[idx] || [];
-
-                    html += `
-                        <div class="area-card" data-area="${area.nombre}">
-                            <div class="area-header">
-                                <i class="fas ${area.icono}"></i>
-                                ${area.nombre}
-                            </div>
-                            <div class="area-body">
-                    `;
-
-                    personas.forEach(p => {
-                        html += `
-                            <div class="person-item" data-nombre="${p.nombre}" data-cargo="${p.cargo}" data-email="${p.email}" data-telefono="${p.telefono}" data-area="${p.area}">
-                                <div class="person-info">
-                                    <span class="nombre">${p.nombre}</span>
-                                    <span class="cargo">${p.cargo}</span>
-                                    <span class="email">${p.email}</span>
-                                </div>
-                                <span class="person-badge"><i class="fas fa-phone"></i> ${p.telefono}</span>
-                            </div>
-                        `;
-                    });
-
-                    html += `
-                            </div>
-                        </div>
-                    `;
-                });
-
-                container.innerHTML = html;
-
-                // Asignar evento de clic a cada persona para abrir modal
-                document.querySelectorAll('.person-item').forEach(item => {
-                    item.addEventListener('click', function () {
-                        const persona = {
-                            nombre: this.dataset.nombre,
-                            cargo: this.dataset.cargo,
-                            email: this.dataset.email,
-                            telefono: this.dataset.telefono,
-                            area: this.dataset.area
-                        };
-                        abrirModal(persona);
+            // ===== ASIGNAR CLIC A CADA PERSONA =====
+            document.querySelectorAll('.person-item').forEach(item => {
+                item.addEventListener('click', function () {
+                    abrirModal({
+                        idUsuario: this.dataset.idUsuario,
+                        nombre: this.dataset.nombre,
+                        apellido: this.dataset.apellido,
+                        correo: this.dataset.correo,
+                        cedula: this.dataset.cedula,
+                        idMunicipio: this.dataset.idMunicipio,
+                        idTpIncidente: this.dataset.idTpIncidente,
+                        tpIncidente: this.dataset.tpIncidente,
+                        area: this.dataset.area
                     });
                 });
-            }
+            });
 
-            // ===== RENDER INICIAL =====
-            render();
+            // ===== MOSTRAR MENSAJES DE DJANGO COMO TOAST =====
+            document.querySelectorAll('#djangoMessages [data-tag]').forEach((el, i) => {
+                const tag = (el.dataset.tag || 'info').toLowerCase();
+                const text = el.dataset.text || '';
+                const esError = ['error', 'danger', 'warning'].includes(tag);
+
+                // pequeño delay escalonado si hay varios mensajes
+                setTimeout(() => mostrarToast(text, esError), 200 + i * 400);
+            });
+
         })();
     </script>
 

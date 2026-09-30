@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
 
     <style>
-        /* ===== ESTILOS GENERALES (desde HTML 1, sin sidebar) ===== */
+        /* ===== ESTILOS GENERALES ===== */
         * {
             margin: 0;
             padding: 0;
@@ -30,7 +30,6 @@
             align-items: center;
         }
 
-        /* Contenedor principal: 80% del ancho */
         .app {
             display: flex;
             flex-direction: column;
@@ -41,7 +40,83 @@
             gap: 1.5vh;
         }
 
-        /* Fila superior: Volver (izquierda) + Textfield (centro) */
+        /* ===== MENSAJES DJANGO ===== */
+        .messages-container {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8vh;
+            width: 100%;
+        }
+
+        .alert {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.9rem 1.4rem;
+            border-radius: 1rem;
+            font-size: 0.95rem;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            border-left: 6px solid;
+            animation: fadeSlide 0.3s ease;
+        }
+
+        .alert-success {
+            background: #e6f6ec;
+            color: #0b6b3a;
+            border-left-color: #1f8b4c;
+        }
+
+        .alert-error,
+        .alert-danger {
+            background: #fdecec;
+            color: #8f1f1f;
+            border-left-color: #b02b2b;
+        }
+
+        .alert-warning {
+            background: #fff6e0;
+            color: #8a6100;
+            border-left-color: #f5c400;
+        }
+
+        .alert-info {
+            background: #e8f0fb;
+            color: #1a4a91;
+            border-left-color: #1a5fb4;
+        }
+
+        .alert-text {
+            flex: 1;
+        }
+
+        .alert-close {
+            background: transparent;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.6;
+            transition: 0.15s;
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+            transform: scale(1.15);
+        }
+
+        @keyframes fadeSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .top-bar {
             display: flex;
             align-items: center;
@@ -66,12 +141,15 @@
             gap: 0.5rem;
             transition: all 0.15s;
             flex-shrink: 0;
+            text-decoration: none;
         }
 
         .top-bar .btn-volver:hover {
             background: #991b1b;
             transform: translateY(-1px);
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            color: white;
+            text-decoration: none;
         }
 
         .top-bar .nombre-input-group {
@@ -108,7 +186,6 @@
             border-bottom: 2px solid #d71920;
         }
 
-        /* Contenedor del mapa: ocupa la mitad de la pantalla */
         .map-container {
             width: 100%;
             height: 50vh;
@@ -125,7 +202,6 @@
             height: 100%;
         }
 
-        /* Fila inferior: botones Limpiar y Guardar centrados */
         .bottom-controls {
             display: flex;
             justify-content: center;
@@ -175,7 +251,6 @@
             background: #0a6a3f;
         }
 
-        /* Toast */
         .toast {
             background: #1e293b;
             color: white;
@@ -198,7 +273,6 @@
             opacity: 1;
         }
 
-        /* Responsive */
         @media (max-width: 1024px) {
             .app {
                 width: 90%;
@@ -265,24 +339,51 @@
 <body>
 
     <div class="app">
+
+        <!-- ===== MENSAJES DJANGO ===== -->
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">
+                <span class="alert-icon">
+                    {% if message.tags == 'success' %}✅
+                    {% elif message.tags == 'error' %}⚠️
+                    {% elif message.tags == 'warning' %}🔔
+                    {% else %}ℹ️{% endif %}
+                </span>
+                <span class="alert-text">{{ message }}</span>
+                <button type="button" class="alert-close" onclick="this.parentElement.remove()">✕</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- ===== FORM OCULTO PARA ENVIAR AL SERVIDOR ===== -->
+        <form id="formSector" method="POST" action="{% url 'Crear-Sector' %}" style="display:none;">
+            {% csrf_token %}
+            <input type="hidden" name="nombre" id="inputNombre">
+            <input type="hidden" name="puntos" id="inputPuntos">
+        </form>
+
         <!-- Fila superior: Volver (izquierda) + Textfield (centro) -->
         <div class="top-bar">
-            <button class="btn-volver" id="btnVolver">
+            <!-- 🔽 Botón Volver convertido en enlace a la vista 'Sectores' -->
+            <a class="btn-volver" id="btnVolver" href="{% url 'Sectores' %}">
                 <i class="fas fa-arrow-left"></i> Volver
-            </button>
+            </a>
             <div class="nombre-input-group">
                 <label for="nombreSector"><i class="fas fa-tag"></i></label>
-                <input type="text" id="nombreSector" class="nombre-input" placeholder="Nombre del sector"/>
+                <input type="text" id="nombreSector" class="nombre-input" placeholder="Nombre del sector" />
             </div>
-            <div style="width: 0; flex-shrink: 0;"></div> <!-- spacer para mantener centrado -->
+            <div style="width: 0; flex-shrink: 0;"></div>
         </div>
 
-        <!-- Mapa (ocupa la mitad) -->
+        <!-- Mapa -->
         <div class="map-container">
             <div id="map"></div>
         </div>
 
-        <!-- Botones debajo del mapa: Limpiar (Azul) y Guardar (Verde) -->
+        <!-- Botones debajo del mapa -->
         <div class="bottom-controls">
             <button class="btn btn-limpiar" id="btnLimpiarMapa">
                 <i class="fas fa-eraser"></i> Limpiar
@@ -302,7 +403,7 @@
     <script>
         (function () {
             'use strict';
-
+            L.TileLayer.prototype.options.referrerPolicy = 'strict-origin-when-cross-origin';
             // ---------- ESTADO ----------
             const state = {
                 points: [],
@@ -313,7 +414,7 @@
             };
 
             // ---------- MAPA (Leaflet) - Colombia ----------
-            const map = L.map('map', { zoomControl: true }).setView([4.5709, -74.2973], 6); // Centro de Colombia
+            const map = L.map('map', { zoomControl: true }).setView([4.5709, -74.2973], 6);
 
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
@@ -376,7 +477,7 @@
                 }
             }
 
-            // ---------- MANEJO DE CLICS EN EL MAPA ----------
+            // ---------- CLICS EN EL MAPA ----------
             function onMapClick(e) {
                 if (state.isClosed) {
                     showToast('El sector está cerrado. Usa "Limpiar" para empezar uno nuevo.');
@@ -420,7 +521,7 @@
                 state.isClosed = false;
             }
 
-            // ---------- BOTÓN LIMPIAR (elimina puntos del mapa) ----------
+            // ---------- BOTÓN LIMPIAR ----------
             document.getElementById('btnLimpiarMapa').addEventListener('click', () => {
                 if (state.points.length === 0 && !state.isClosed) {
                     showToast('No hay nada que limpiar');
@@ -430,23 +531,30 @@
                 showToast('Dibujo limpiado');
             });
 
-            // ---------- BOTÓN GUARDAR (solo muestra mensaje) ----------
+            // ---------- BOTÓN GUARDAR ----------
             document.getElementById('btnGuardar').addEventListener('click', function () {
                 if (!state.isClosed || state.points.length < 4) {
                     showToast('Debes colocar al menos 4 puntos y cerrar el sector.');
                     return;
                 }
-                const nombre = document.getElementById('nombreSector').value.trim() || 'Sector';
-                showToast(`Sector "${nombre}" guardado (solo demostración)`);
-            });
 
-            // ---------- BOTÓN VOLVER (sin funcionalidad) ----------
-            document.getElementById('btnVolver').addEventListener('click', () => {
-                showToast('Volver (sin funcionalidad)');
+                const nombre = document.getElementById('nombreSector').value.trim();
+                if (!nombre) {
+                    showToast('Debes ingresar un nombre para el sector.');
+                    document.getElementById('nombreSector').focus();
+                    return;
+                }
+
+                // Convertir puntos Leaflet -> [[lat, lng], ...]
+                const puntos = state.points.map(p => [p.lat, p.lng]);
+
+                document.getElementById('inputNombre').value = nombre;
+                document.getElementById('inputPuntos').value = JSON.stringify(puntos);
+                document.getElementById('formSector').submit();
             });
 
             // ---------- INICIALIZAR ----------
-            showToast('Haz clic en el mapa para dibujar un sector', 2000);
+            showToast('Haz clic en el mapa para dibujar un sector', 4000);
         })();
     </script>
 

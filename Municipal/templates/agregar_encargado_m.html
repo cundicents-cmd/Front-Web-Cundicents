@@ -90,6 +90,45 @@
             font-size: clamp(1rem, 1.4vw, 1.3rem);
         }
 
+        /* ========== MENSAJES DJANGO ========== */
+        .messages {
+            margin-bottom: 2vh;
+            width: 100%;
+        }
+
+        .alert {
+            padding: 1.4vh 1.6vw;
+            border-radius: 1rem;
+            font-weight: 600;
+            font-size: clamp(0.85rem, 1.05vw, 1.05rem);
+            margin-bottom: 1vh;
+        }
+
+        .alert-success {
+            background: #e6f6ec;
+            color: #1f7a3d;
+            border-left: 0.4vw solid #1f7a3d;
+        }
+
+        .alert-error,
+        .alert-danger {
+            background: #fdeaea;
+            color: #b02b2b;
+            border-left: 0.4vw solid #b02b2b;
+        }
+
+        .alert-warning {
+            background: #fff8e0;
+            color: #8a6d00;
+            border-left: 0.4vw solid #f5c400;
+        }
+
+        .alert-info {
+            background: #e7f3fb;
+            color: #1a6a99;
+            border-left: 0.4vw solid #1a6a99;
+        }
+
         /* ========== FORMULARIO DE REGISTRO ========== */
         .form-card {
             background: white;
@@ -162,7 +201,6 @@
             box-shadow: 0 0 0 3px rgba(215, 25, 32, 0.12);
         }
 
-        /* Input válido / inválido */
         .form-group input.invalid {
             border-color: #b02b2b;
             box-shadow: 0 0 0 3px rgba(176, 43, 43, 0.12);
@@ -290,6 +328,13 @@
             background-color: #b01218;
             transform: scale(1.02);
             box-shadow: 0 0.6vh 1.8vh rgba(215, 25, 32, 0.4);
+        }
+
+        .btn-registrar:disabled {
+            background-color: #a0a0a0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
         }
 
         .btn-limpiar {
@@ -431,7 +476,7 @@
 <body>
 
     <!-- ===== BOTÓN VOLVER ===== -->
-    <button class="btn-volver" id="btnVolver" onclick="">
+    <button type="button" class="btn-volver" id="btnVolver">
         <span class="arrow">←</span> Volver
     </button>
 
@@ -442,11 +487,21 @@
             <p>Completa los campos para crear una nueva cuenta</p>
         </div>
 
+        <!-- ===== MENSAJES DE DJANGO ===== -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- ===== FORMULARIO ===== -->
         <div class="form-card">
             <h2>Datos del usuario</h2>
 
-            <form id="registroForm" autocomplete="off" novalidate>
+            <form id="registroForm" autocomplete="off" novalidate method="POST" action="{% url 'Agregar-Encargado' %}">
+                {% csrf_token %}
                 <div class="form-grid">
 
                     <!-- Nombre -->
@@ -479,10 +534,7 @@
                         <label for="password"><i>🔒</i> Contraseña</label>
                         <div class="password-wrapper">
                             <input type="password" id="password" name="password"
-                                placeholder="Crea una contraseña segura" minlength="8"
-                                pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*()_+\-=\[\]{};':&quot;\\|,.<>\/?]).{6,}$"
-                                title="Mínimo 8 caracteres, con al menos una mayúscula, una minúscula, un número y un símbolo especial."
-                                required>
+                                placeholder="Crea una contraseña segura" minlength="8" required>
                             <button type="button" class="toggle-password" id="togglePassword"
                                 aria-label="Mostrar u ocultar contraseña">
                                 👁️
@@ -508,14 +560,13 @@
                         <label for="tipoIncidente"><i>⚠️</i> Tipo de incidente que va a monitorear</label>
                         <select id="tipoIncidente" name="tipoIncidente" required>
                             <option value="" disabled selected>Seleccione tipo</option>
-                            <option value="Robo">Robo</option>
-                            <option value="Hurto">Hurto</option>
-                            <option value="Vandalismo">Vandalismo</option>
-                            <option value="Incendio">Incendio</option>
-                            <option value="Accidente de tránsito">Accidente de tránsito</option>
-                            <option value="Inundación">Inundación</option>
-                            <option value="Deslizamiento">Deslizamiento</option>
-                            <option value="Otro">Otro</option>
+                            <option value="1">Seguridad y convivencia</option>
+                            <option value="2">Accidente</option>
+                            <option value="3">Gestion del riesgo</option>
+                            <option value="4">Infraestructura</option>
+                            <option value="5">Servicios públicos</option>
+                            <option value="6">Ambiental</option>
+                            <option value="7">Salud pública</option>
                         </select>
                     </div>
 
@@ -575,7 +626,6 @@
                     }
                 });
 
-                // Feedback visual en el input
                 if (val.length === 0) {
                     passwordInput.classList.remove('valid', 'invalid');
                 } else if (todosOk) {
@@ -613,9 +663,8 @@
                 document.getElementById('nombre').focus();
             });
 
-            // ===== ENVÍO DEL FORMULARIO =====
+            // ===== ENVÍO DEL FORMULARIO (POST REAL) =====
             form.addEventListener('submit', function (e) {
-                e.preventDefault();
 
                 const nombre = document.getElementById('nombre').value.trim();
                 const apellidos = document.getElementById('apellidos').value.trim();
@@ -624,34 +673,50 @@
                 const password = passwordInput.value;
                 const tipoIncidente = document.getElementById('tipoIncidente').value;
 
-                // Validación de campos vacíos
+                // --- Validación de campos vacíos ---
                 if (!nombre || !apellidos || !cedula || !correo || !password || !tipoIncidente) {
+                    e.preventDefault();
                     alert('⚠️ Por favor completa todos los campos.');
                     return;
                 }
 
-                // Validación de contraseña
+                // --- Validación de correo ---
+                if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) {
+                    e.preventDefault();
+                    alert('⚠️ Ingresa un correo electrónico válido.');
+                    document.getElementById('correo').focus();
+                    return;
+                }
+
+                // --- Validación de cédula ---
+                if (!/^\d+$/.test(cedula)) {
+                    e.preventDefault();
+                    alert('⚠️ La cédula debe contener solo números.');
+                    document.getElementById('cedula').focus();
+                    return;
+                }
+
+                // --- Validación de contraseña ---
                 const erroresPass = validarPassword();
                 if (erroresPass.length > 0) {
+                    e.preventDefault();
                     alert('⚠️ La contraseña debe contener:\n- ' + erroresPass.join('\n- '));
                     passwordInput.focus();
                     return;
                 }
 
-                // Registro exitoso (simulado)
-                alert(`✅ Usuario registrado:\n\nNombre: ${nombre} ${apellidos}\nCédula: ${cedula}\nCorreo: ${correo}\nTipo incidente: ${tipoIncidente}\n\n(Simulación, no se guardó en base de datos)`);
-
-                // Limpiar formulario
-                form.reset();
-                passwordInput.setAttribute('type', 'password');
-                toggleBtn.textContent = '👁️';
-                passwordInput.classList.remove('valid', 'invalid');
-                actualizarHint();
-                document.getElementById('nombre').focus();
+                // --- Todo OK: se envía por POST ---
+                const btn = form.querySelector('.btn-registrar');
+                btn.disabled = true;
+                btn.textContent = 'Registrando…';
             });
 
             // Enfocar el primer campo al cargar
             document.getElementById('nombre').focus();
+
+            document.getElementById('btnVolver').addEventListener('click', function () {
+                window.location.href = "{% url 'Encargados' %}";
+            });
         })();
     </script>
 

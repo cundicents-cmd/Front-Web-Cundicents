@@ -27,6 +27,6 @@ urlpatterns = [
     
     #Rutas Gubernamentales, Municipalidad y Encargados
     path('Gobernacion/',include("Gubernamental.urls")),
-    #path('Municipalidad/',include("Municipal.urls")),
-    #path('Encargado/',include("Encargado.urls")),
+    path('Municipalidad/',include("Municipal.urls")),
+    path('Encargado/',include("Encargado.urls")),
 ]

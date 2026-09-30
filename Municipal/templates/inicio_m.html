@@ -481,15 +481,15 @@
 
     <aside class="sidebar">
         <div class="logo">
-            <img src="{% static 'img/log.png' %}log.png" alt="Logo institucional">
+            <img src="{% static 'img/log.png' %}" alt="Logo institucional">
         </div>
         <ul class="menu">
-            <li><a href="inicio_m.html" class="active">Inicio</a></li>
-            <li><a href="sectores_m.html">Sectores</a></li>
-            <li><a href="encargados_m.html">Encargados</a></li>
+            <li><a href="{% url 'Municipalidad'%}" class="active">Inicio</a></li>
+            <li><a href="{% url 'Sectores'%}">Sectores</a></li>
+            <li><a href="{% url 'Encargados'%}">Encargados</a></li>
             <li><a href="#">Incidentes</a></li>
-            <li><a href="reportes_m.html">Reportes</a></li>
-            <li><a href="configuracion_m.html">Configuración</a></li>
+            <li><a href="#">Reportes</a></li>
+            <li><a href="{% url 'Actualizar-Usuario'%}">Configuración</a></li>
         </ul>
     </aside>
 

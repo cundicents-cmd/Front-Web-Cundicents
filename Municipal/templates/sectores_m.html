@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
     <title>Sistema de Incidentes · Sectores</title>
     <link rel="icon" type="image/png" href="{% static 'img/log.png' %}">
+
     <style>
         * {
             margin: 0;
@@ -118,6 +119,83 @@
             font-size: clamp(1rem, 1.4vw, 1.5rem);
         }
 
+        /* ========== MENSAJES DJANGO ========== */
+        .messages-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1vh;
+            margin-bottom: 2vh;
+        }
+
+        .alert {
+            display: flex;
+            align-items: center;
+            gap: 0.8vw;
+            padding: 1.4vh 1.8vw;
+            border-radius: 1rem;
+            font-size: clamp(0.9rem, 1.1vw, 1.1rem);
+            font-weight: 600;
+            box-shadow: 0 0.4vh 1.2vh rgba(0, 0, 0, 0.08);
+            border-left: 0.5vw solid;
+            animation: fadeSlide 0.3s ease;
+        }
+
+        .alert-success {
+            background: #e6f6ec;
+            color: #0b6b3a;
+            border-left-color: #1f8b4c;
+        }
+
+        .alert-error,
+        .alert-danger {
+            background: #fdecec;
+            color: #8f1f1f;
+            border-left-color: #b02b2b;
+        }
+
+        .alert-warning {
+            background: #fff6e0;
+            color: #8a6100;
+            border-left-color: #f5c400;
+        }
+
+        .alert-info {
+            background: #e8f0fb;
+            color: #1a4a91;
+            border-left-color: #1a5fb4;
+        }
+
+        .alert-text {
+            flex: 1;
+        }
+
+        .alert-close {
+            background: transparent;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.6;
+            transition: 0.15s;
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+            transform: scale(1.15);
+        }
+
+        @keyframes fadeSlide {
+            from {
+                opacity: 0;
+                transform: translateY(-6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         /* ========== BARRA DE BÚSQUEDA ========== */
         .search-bar {
             display: flex;
@@ -127,7 +205,7 @@
             padding: 1.6vh 2vw;
             border-radius: 1.2rem;
             box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.07);
-            margin-bottom: 3vh;
+            margin-bottom: 2vh;
             align-items: center;
             border-left: 0.4vw solid #f5c400;
         }
@@ -245,6 +323,16 @@
             transform: scale(1.04);
         }
 
+        .btn.editar {
+            background: #f5c400;
+            color: #7a5a00;
+        }
+
+        .btn.editar:hover {
+            background: #e0b200;
+            transform: scale(1.04);
+        }
+
         .btn.eliminar {
             background: #b02b2b;
             color: white;
@@ -276,6 +364,7 @@
             z-index: 999;
             border: 1px solid rgba(255, 255, 255, 0.2);
             letter-spacing: 0.4px;
+            text-decoration: none;
         }
 
         .btn-flotante:hover {
@@ -284,8 +373,29 @@
             box-shadow: 0 14px 30px rgba(31, 139, 76, 0.5);
         }
 
-        .btn-flotante i {
-            font-size: 1.2rem;
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #1e293b;
+            color: white;
+            padding: 0.8rem 1.6rem;
+            border-radius: 2rem;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+            opacity: 0;
+            pointer-events: none;
+            transition: 0.25s ease;
+            z-index: 10000;
+            white-space: nowrap;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         /* ========== RESPONSIVE ========== */
@@ -497,84 +607,181 @@
             <p>Gestión de sectores</p>
         </div>
 
+        <!-- ===== MENSAJES DJANGO ===== -->
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }}">
+                <span class="alert-icon">
+                    {% if message.tags == 'success' %}✅
+                    {% elif message.tags == 'error' %}⚠️
+                    {% elif message.tags == 'warning' %}🔔
+                    {% else %}ℹ️{% endif %}
+                </span>
+                <span class="alert-text">{{ message }}</span>
+                <button type="button" class="alert-close" onclick="this.parentElement.remove()">✕</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- ===== BARRA DE BÚSQUEDA ===== -->
         <div class="search-bar">
-            <input type="text" placeholder="Buscar sector ..." aria-label="Buscar sector">
-            <button type="button">🔍 Buscar</button>
+            <input type="text" id="buscador" placeholder="Buscar sector ..." aria-label="Buscar sector"
+                autocomplete="off">
+            <button type="button" id="btn-buscar">🔍 Buscar</button>
         </div>
 
         <!-- ===== LISTADO DE SECTORES ===== -->
-        <div class="list-container">
-
-            <!-- Sector Norte -->
-            <div class="list-item">
+        <div class="list-container" id="lista-sectores">
+            {% for sector in sectores %}
+            <div class="list-item" data-id="{{ sector.id }}" data-nombre="{{ sector.sector }}">
                 <div class="item-info">
-                    <div class="nombre">Norte</div>
+                    <input type="hidden" class="sector-id" value="{{ sector.id }}">
+                    <div class="nombre">{{ sector.sector }}</div>
                 </div>
                 <div class="actions">
-                    <button class="btn visualizar">👁️ Visualizar</button>
-                    <button class="btn eliminar">✕ Eliminar sector</button>
+                    <button type="button" class="btn visualizar" data-url="{% url 'Ver-Sector' sector.id %}">
+                        👁️ Visualizar
+                    </button>
+
+                    <button type="button" class="btn editar" data-id="{{ sector.id }}">
+                        ✏️ Editar
+                    </button>
+
+                    <button type="button" class="btn eliminar" data-id="{{ sector.id }}"
+                        data-url="{% url 'Eliminar-Sector' sector.id %}">
+                        ✕ Eliminar sector
+                    </button>
                 </div>
             </div>
-
-            <!-- Sector Sur -->
-            <div class="list-item">
+            {% empty %}
+            <div class="list-item" data-empty="true">
                 <div class="item-info">
-                    <div class="nombre">Sur</div>
-                </div>
-                <div class="actions">
-                    <button class="btn visualizar">👁️ Visualizar</button>
-                    <button class="btn eliminar">✕ Eliminar sector</button>
+                    <div class="nombre">No hay sectores registrados</div>
                 </div>
             </div>
-
-            <!-- Sector Este -->
-            <div class="list-item">
-                <div class="item-info">
-                    <div class="nombre">Este</div>
-                </div>
-                <div class="actions">
-                    <button class="btn visualizar">👁️ Visualizar</button>
-                    <button class="btn eliminar">✕ Eliminar sector</button>
-                </div>
-            </div>
-
-            <!-- Sector Oeste -->
-            <div class="list-item">
-                <div class="item-info">
-                    <div class="nombre">Oeste</div>
-                </div>
-                <div class="actions">
-                    <button class="btn visualizar">👁️ Visualizar</button>
-                    <button class="btn eliminar">✕ Eliminar sector</button>
-                </div>
-            </div>
-
-            <!-- Sector Centro -->
-            <div class="list-item">
-                <div class="item-info">
-                    <div class="nombre">Centro</div>
-                </div>
-                <div class="actions">
-                    <button class="btn visualizar">👁️ Visualizar</button>
-                    <button class="btn eliminar">✕ Eliminar sector</button>
-                </div>
-            </div>
-
-            <!-- Sector Noroeste -->
-            <div class="list-item">
-                <div class="item-info">
-                    <div class="nombre">Noroeste</div>
-                </div>
-                <div class="actions">
-                    <button class="btn visualizar">👁️ Visualizar</button>
-                    <button class="btn eliminar">✕ Eliminar sector</button>
-                </div>
-            </div>
-
+            {% endfor %}
         </div>
     </main>
-    <button class="btn-flotante">Agregar sector</button>
+
+    <!-- Botón flotante que lleva al formulario de creación -->
+    <a href="{% url 'Crear-Sector' %}" class="btn-flotante">➕ Agregar sector</a>
+
+    <!-- Toast -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+
+            /* =========================================================
+               TOAST
+               ========================================================= */
+            const toastEl = document.getElementById('toast');
+            let toastTimer = null;
+            function showToast(msg, duration = 2200) {
+                toastEl.textContent = msg;
+                toastEl.classList.add('show');
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => toastEl.classList.remove('show'), duration);
+            }
+
+            /* =========================================================
+               BUSCADOR — filtra en vivo
+               ========================================================= */
+            const input = document.getElementById('buscador');
+            const boton = document.getElementById('btn-buscar');
+            const contenedor = document.getElementById('lista-sectores');
+            const items = Array.from(contenedor.querySelectorAll('.list-item[data-nombre]'));
+            const itemVacio = contenedor.querySelector('.list-item[data-empty="true"]');
+
+            let sinResultados = document.getElementById('sin-resultados');
+            if (!sinResultados) {
+                sinResultados = document.createElement('div');
+                sinResultados.className = 'list-item';
+                sinResultados.id = 'sin-resultados';
+                sinResultados.style.display = 'none';
+                sinResultados.innerHTML =
+                    '<div class="item-info"><div class="nombre">No se encontraron sectores</div></div>';
+                contenedor.appendChild(sinResultados);
+            }
+
+            function normalizar(texto) {
+                return (texto || '')
+                    .toString()
+                    .toLowerCase()
+                    .normalize('NFD')
+                    .replace(/[\u0300-\u036f]/g, '')
+                    .trim();
+            }
+
+            function filtrar() {
+                if (items.length === 0) {
+                    if (itemVacio) itemVacio.style.display = '';
+                    sinResultados.style.display = 'none';
+                    return;
+                }
+                if (itemVacio) itemVacio.style.display = 'none';
+
+                const consulta = normalizar(input.value);
+                let visibles = 0;
+
+                items.forEach(item => {
+                    const nombre = normalizar(item.dataset.nombre);
+                    const coincide = nombre.includes(consulta);
+                    item.style.display = coincide ? '' : 'none';
+                    if (coincide) visibles++;
+                });
+
+                sinResultados.style.display = (visibles === 0) ? '' : 'none';
+            }
+
+            input.addEventListener('input', filtrar);
+            input.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); filtrar(); }
+            });
+            boton.addEventListener('click', filtrar);
+            filtrar();
+
+            /* =========================================================
+               BOTÓN VISUALIZAR  →  redirige a 'Ver-Sector'
+               ========================================================= */
+            document.querySelectorAll('.btn.visualizar').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const url = btn.dataset.url;
+                    if (!url) {
+                        showToast('No se pudo abrir el sector.');
+                        return;
+                    }
+                    window.location.href = url;
+                });
+            });
+
+            /* =========================================================
+               BOTÓN EDITAR  →  placeholder (sin funcionalidad)
+               ========================================================= */
+            document.querySelectorAll('.btn.editar').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.id;
+                    showToast(`Editar sector #${id} — próximamente`);
+                });
+            });
+
+            /* =========================================================
+               BOTÓN ELIMINAR
+               ========================================================= */
+            document.querySelectorAll('.btn.eliminar').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const url = btn.dataset.url;
+                    if (!url) return;
+                    if (confirm('¿Eliminar este sector?')) {
+                        window.location.href = url;
+                    }
+                });
+            });
+
+        });
+    </script>
 
 </body>
 

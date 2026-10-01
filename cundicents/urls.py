@@ -30,3 +30,4 @@ urlpatterns = [
     path('Municipalidad/',include("Municipal.urls")),
     path('Encargado/',include("Encargado.urls")),
 ]
+handler404 = LV.error_404

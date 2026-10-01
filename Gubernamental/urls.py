@@ -19,6 +19,6 @@ urlpatterns = [
     path('Municipios/Actualizar-Administrador/<int:id>/', VG.actualizar_administrador, name="Actualizar-Administrador"),
 
     #Actualizacion de datos del usuario
-    path('Configuracion', VG.actualizar_usuario, name="Actualizar-Usuario"),
+    path('Configuracion', VG.actualizar_usuario, name="Actualizar-Usuario-G"),
     
 ]

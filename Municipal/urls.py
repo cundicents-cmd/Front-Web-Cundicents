@@ -16,8 +16,10 @@ urlpatterns = [
     path('Encargados', VM.gestion_encargados, name="Encargados"),   
     path('Encargados/Agregar-Encargado', VM.agregar_encargado, name="Agregar-Encargado"),   
     path('Encargados/Eliminar-Encargado/<int:id_usuario>/', VM.eliminar_encargado, name="Eliminar-Encargado"),   
+    path('Encargados/Actualizar-Encargado/<int:id_usuario>/', VM.actualizar_encargado, name="Actualizar-Encargado"),   
+        
 
     #Actualizacion de datos del usuario
-    path('Configuracion', VM.actualizar_usuario, name="Actualizar-Usuario"),
+    path('Configuracion', VM.actualizar_usuario, name="Actualizar-Usuario-M"),
         
 ]

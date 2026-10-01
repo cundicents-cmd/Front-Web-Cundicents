@@ -177,7 +177,7 @@
             padding: 1vh 1vw;
             border-radius: 0.8rem;
             background-color: #fefcf7;
-            border: 1px solid #f0e6c5;
+            border: 1px solid #b2a479;
             transition: 0.1s ease;
             cursor: pointer;
         }
@@ -657,7 +657,7 @@
         <div class="header">
             <h1>Áreas de Gestión</h1>
             <p>Encargados por área · Seguridad y convivencia, Accidente, Gestión del riesgo, Infraestructura,
-                Servicios públicos, Ambiental, Salud pública</p>
+                Servicios públicos, Ambiental y Salud pública</p>
         </div>
 
         <!-- MENSAJES DJANGO (ocultos, se muestran como toast con JS) -->
@@ -860,9 +860,10 @@
         </div>
     </div>
 
-    <!-- URL base para eliminación (el 0 se reemplaza por el ID real) -->
+    <!-- URL base para eliminación y actualización (el 0 se reemplaza por el ID real) -->
     <script>
         const URL_ELIMINAR_ENCARGADO = "{% url 'Eliminar-Encargado' 0 %}";
+        const URL_ACTUALIZAR_ENCARGADO = "{% url 'Actualizar-Encargado' 0 %}";
     </script>
 
     <script>
@@ -957,9 +958,11 @@
                 if (e.key === 'Escape') cerrarModal();
             });
 
+            // ====== BOTÓN MODIFICAR (redirige a la vista de actualización) ======
             modalModificarBtn.addEventListener('click', () => {
                 if (!personaActual) return;
-                alert('[Simulación] Modificar encargado #' + personaActual.idUsuario);
+                const url = URL_ACTUALIZAR_ENCARGADO.replace('0', personaActual.idUsuario);
+                window.location.href = url;
             });
 
             // ====== BOTÓN ELIMINAR ======

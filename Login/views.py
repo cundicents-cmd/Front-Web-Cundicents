@@ -45,6 +45,5 @@ def logout_g(request):
 def acceso_denegado(request):
     return render(request, "acceso_denegado.html")
 
-
-def error_404(request):
-    return render(request, "404.html")
+def error_404(request, execption):
+    return render(request, "404.html", status=404)

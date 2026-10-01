@@ -618,7 +618,7 @@
             <li><a href="{% url 'Encargados'%}">Encargados</a></li>
             <li><a href="#">Incidentes</a></li>
             <li><a href="#">Reportes</a></li>
-            <li><a href="#">Configuración</a></li>
+            <li><a href="{% URL 'Actualizar-Usuario-M'%}">Configuración</a></li>
         </ul>
     </aside>
 
@@ -648,7 +648,7 @@
             <h2>Datos del usuario</h2>
 
             <form id="modificarForm" autocomplete="off" novalidate method="POST"
-                action="{% url 'Actualizar-Usuario' %}">
+                action="{% url 'Actualizar-Usuario-M' %}">
                 {% csrf_token %}
                 <div class="form-grid">
 

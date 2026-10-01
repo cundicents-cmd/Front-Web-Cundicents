@@ -18,8 +18,6 @@ def puntos_a_wkt(puntos):
 
 @group_required("Municipal")
 def inicio_municipalidad(request):
-    #granjas = VerGranjas.objects.all()
-    #context = {"granjas": granjas,}
     return render(request, "inicio_m.html")
 
 
@@ -132,7 +130,6 @@ def gestion_encargados(request):
     }
     return render(request, 'encargados_m.html', context)
 
-
 @group_required("Municipal")
 def agregar_encargado(request):
     if request.method == 'POST':
@@ -173,7 +170,6 @@ def agregar_encargado(request):
 
                 if mensaje_sp != "Usuario registrado correctamente":
                     messages.error(request, mensaje_sp or "No se recibió respuesta del servidor.")
-                    # ✅ CORREGIDO: plantilla correcta
                     return render(request, "agregar_encargado_m.html")
 
                 messages.success(request, 'Encargado agregado exitosamente.')
@@ -186,8 +182,6 @@ def agregar_encargado(request):
 
     return render(request, "agregar_encargado_m.html")
 
-
-@group_required("Municipal")
 @group_required("Municipal")
 def eliminar_encargado(request, id_usuario):
     try:
@@ -208,6 +202,55 @@ def eliminar_encargado(request, id_usuario):
             {'success': False, 'error': str(e)},
             status=500
         )
+
+@group_required("Municipal")
+def actualizar_encargado(request, id_usuario):
+    try:
+        encargado = verUsuariosResponsabilidades.objects.get(id_usuario=id_usuario)
+    except verUsuariosResponsabilidades.DoesNotExist:
+        messages.error(request, 'El encargado no existe.')
+        return redirect('Encargados')
+
+    if request.method != 'POST':
+        return render(request, 'actualizar_encargado_m.html', {
+            'encargado': encargado
+        })
+
+    nombre    = request.POST.get('nombre', '').strip()
+    apellidos = request.POST.get('apellidos', '').strip()
+    cedula    = request.POST.get('cedula', '').strip()
+    correo    = request.POST.get('correo', '').strip()
+    password  = request.POST.get('password', '').strip()
+    tipoInicidente = request.POST.get('tipoIncidente', '').strip()
+
+    if VerUsuarios.objects.filter(cedula=cedula).exclude(id=id_usuario).exists():
+        messages.error(request, 'La cédula ya está registrada por otro usuario.')
+        return render(request, 'actualizar_encargado_m.html', {
+            'encargado': encargado
+        })
+
+    if VerUsuarios.objects.filter(correo=correo).exclude(id=id_usuario).exists():
+        messages.error(request, 'El correo ya está registrado por otro usuario.')
+        return render(request, 'actualizar_encargado_m.html', {
+            'encargado': encargado
+        })
+
+    try:
+        if password == "": passw = None
+        else: passw = make_password(password)
+        
+        with connection.cursor() as cursor:
+            cursor.callproc('actualizar_Encargado', [id_usuario , nombre, apellidos, cedula, correo, passw, tipoInicidente])
+        messages.success(request, 'Encargado actualizado correctamente.')
+        return redirect('Encargados')
+
+    except Exception as e:
+        # ❌ Error → se queda en HTML2 con el mensaje
+        messages.error(request, f'Ocurrió un error al actualizar el administrador: {e}')
+        return render(request, 'actualizar_administrador_g.html', {
+            'encargado': encargado
+        })
+
 
 #View de configuracion
 @group_required("Municipal")
@@ -234,7 +277,7 @@ def actualizar_usuario(request):
                 update_session_auth_hash(request, user)
 
             messages.success(request, 'Datos actualizados correctamente.')
-            return redirect('Actualizar-Usuario')
+            return redirect('Actualizar-Usuario-M')
 
         except Exception as e:
             messages.error(request, f'Ocurrió un error al actualizar el administrador: {e}')

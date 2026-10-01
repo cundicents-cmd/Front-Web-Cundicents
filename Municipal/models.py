@@ -35,7 +35,7 @@ class verUsuariosResponsabilidades(models.Model):
     correo        = models.EmailField()
     cedula        = models.IntegerField()
     id_municipio  = models.IntegerField()
-    id_tp_incidente = models.IntegerField()   # ← antes id_tp_municipio
+    id_tp_incidente = models.IntegerField() 
     tp_incidente  = models.CharField(max_length=100)
     class Meta:
         managed = False

@@ -22,12 +22,18 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', LV.login_view, name="Login"),
     path('Logout', LV.logout_g, name="Logout"),
-    path('No-Autorizado/', LV.acceso_denegado, name='no_autorizado'),
+    path('No-Autorizado/', LV.error_403, name='No-Autorizado'),
     path('No-Encontrado/', LV.error_404, name='404'),
     
+    #Rutas recuperacion de contraseña
+    path('Recuperacion-Contraseña/', LV.recuperar_contrasena, name='Recuperacion-Contraseña'),
+    path('Recuperacion-Contraseña/Enviar-Codigo-Recuperacion', LV.enviar_codigo_recuperacion, name='Enviar-Codigo-Recuperacion'),
+    path('Recuperacion-Contraseña/Verificar-Codigo/',LV.verificar_codigo_recuperacion,  name='Verificar-Codigo-Recuperacion'),
+    path('Recuperacion-Contraseña/Actualizar/',LV.actualizar_contrasena, name='Actualizar-Contrasena'),
+        
+
     #Rutas Gubernamentales, Municipalidad y Encargados
     path('Gobernacion/',include("Gubernamental.urls")),
     path('Municipalidad/',include("Municipal.urls")),
     path('Encargado/',include("Encargado.urls")),
 ]
-handler404 = LV.error_404

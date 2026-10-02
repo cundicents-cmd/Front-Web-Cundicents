@@ -23,13 +23,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-4cxfxv^kd%#_!br+lol*&c2x!ogtt_#*r3bik_0h)p9$_h#6et'
-
+SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = ["*"]
-
 
 # Application definition
 
@@ -43,7 +41,8 @@ INSTALLED_APPS = [
     'Gubernamental',
     'Municipal',
     'Encargado',
-    'Login'
+    'Login',
+    'Login.service'
 ]
 
 MIDDLEWARE = [
@@ -135,7 +134,16 @@ STATICFILES_DIRS = (os.path.join(BASE_DIR,'cundicents/static'),)
 # https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
 
 MAILERS = {
-    'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+    "default": {
+        "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+        "OPTIONS": {
+            "host": "smtp.gmail.com",
+            "port": 587,
+            "username": os.getenv('EMAIL'),
+            "password": os.getenv('APLICATION_PASSWORD'),
+            "use_tls": True,
+        },
     },
 }
+
+DEFAULT_FROM_EMAIL = os.getenv('EMAIL')

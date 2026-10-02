@@ -185,6 +185,7 @@
             text-decoration: underline;
         }
 
+        /* ========== MENSAJES ========== */
         .error-msg {
             color: #d71920;
             background: #ffe5e5;
@@ -196,6 +197,38 @@
             text-align: center;
         }
 
+        .success-msg {
+            color: #1b7a2f;
+            background: #e6f9e9;
+            border-left: 4px solid #2ecc71;
+            padding: 1vh 1vw;
+            border-radius: 0.5rem;
+            margin-top: 1.5vh;
+            font-size: clamp(0.85rem, 0.95vw, 1rem);
+            text-align: center;
+        }
+
+        .warning-msg {
+            color: #8a6d00;
+            background: #fff8dd;
+            border-left: 4px solid #f0c000;
+            padding: 1vh 1vw;
+            border-radius: 0.5rem;
+            margin-top: 1.5vh;
+            font-size: clamp(0.85rem, 0.95vw, 1rem);
+            text-align: center;
+        }
+
+        .info-msg {
+            color: #0b4a80;
+            background: #e5f1fb;
+            border-left: 4px solid #2196f3;
+            padding: 1vh 1vw;
+            border-radius: 0.5rem;
+            margin-top: 1.5vh;
+            font-size: clamp(0.85rem, 0.95vw, 1rem);
+            text-align: center;
+        }
 
         /* ========== RESPONSIVE ========== */
         @media (max-width: 600px) {
@@ -253,6 +286,17 @@
 
             <form id="loginForm" method="POST">
                 {% csrf_token %}
+
+                {# ===== MENSAJES DEL FRAMEWORK DE DJANGO ===== #}
+                {% if messages %}
+                {% for message in messages %}
+                <p
+                    class="{% if message.tags == 'success' %}success-msg{% elif message.tags == 'warning' %}warning-msg{% elif message.tags == 'info' %}info-msg{% else %}error-msg{% endif %}">
+                    {{ message }}
+                </p>
+                {% endfor %}
+                {% endif %}
+
                 <div class="form-group">
                     <label for="email"><i class="fas fa-envelope"></i> Correo electrónico</label>
                     <input name="email" type="email" id="email" placeholder="ejemplo@correo.com" required>
@@ -264,14 +308,16 @@
                 </div>
 
                 <div class="form-options">
-                    <a href="#">¿Olvidaste tu contraseña?</a>
+                    <a href="{% url 'Recuperacion-Contraseña' %}">¿Olvidaste tu contraseña?</a>
                 </div>
 
                 <button type="submit" class="btn-login">
                     <i class="fas fa-sign-in-alt"></i> Ingresar
                 </button>
+
+                {# Mensaje de error que puedas seguir mandando desde la vista del login #}
                 {% if error %}
-                <p class="error-msg" style="color: red">{{ error }}</p>
+                <p class="error-msg">{{ error }}</p>
                 {% endif %}
             </form>
         </div>

@@ -9,6 +9,6 @@ def group_required(group_name):
         def _wrapped_view(request, *args, **kwargs):
             if request.user.groups.filter(name=group_name).exists():
                 return view_func(request, *args, **kwargs)
-            return redirect('no_autorizado')
+            return redirect('No-Autorizado')
         return _wrapped_view
     return decorator

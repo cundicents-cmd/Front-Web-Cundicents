@@ -1,0 +1,288 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>Página no encontrada · Sistema de Incidentes</title>
+    <link rel="icon" type="image/png" href="{% static 'img/log.png' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8eaa4;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4vh 4vw;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ===== DECORACIÓN DE FONDO ===== */
+        body::before,
+        body::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::before {
+            width: 45vw;
+            height: 45vw;
+            max-width: 600px;
+            max-height: 600px;
+            background: radial-gradient(circle, rgba(215, 25, 32, 0.10) 0%, transparent 70%);
+            top: -15vw;
+            left: -15vw;
+        }
+
+        body::after {
+            width: 50vw;
+            height: 50vw;
+            max-width: 700px;
+            max-height: 700px;
+            background: radial-gradient(circle, rgba(245, 196, 0, 0.25) 0%, transparent 70%);
+            bottom: -20vw;
+            right: -20vw;
+        }
+
+        /* ===== TARJETA PRINCIPAL ===== */
+        .error-card {
+            position: relative;
+            z-index: 1;
+            background: white;
+            max-width: 620px;
+            width: 100%;
+            border-radius: 2rem;
+            padding: 5vh 4vw 4vh;
+            box-shadow: 0 2vh 5vh rgba(0, 0, 0, 0.12);
+            border-left: 0.8vw solid #d71920;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeUp 0.5s ease;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== ICONO ===== */
+        .icon-circle {
+            width: clamp(90px, 12vw, 130px);
+            height: clamp(90px, 12vw, 130px);
+            border-radius: 50%;
+            background: #fdeaea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2.5vh;
+            border: 3px dashed #d71920;
+            animation: pulse 2.4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                transform: scale(1);
+                box-shadow: 0 0 0 0 rgba(215, 25, 32, 0.25);
+            }
+
+            50% {
+                transform: scale(1.03);
+                box-shadow: 0 0 0 14px rgba(215, 25, 32, 0);
+            }
+        }
+
+        .icon-circle i {
+            color: #d71920;
+            font-size: clamp(2.4rem, 5vw, 3.6rem);
+        }
+
+        /* ===== NÚMERO 404 ===== */
+        .error-code {
+            font-size: clamp(4.5rem, 12vw, 9rem);
+            font-weight: 800;
+            color: #d71920;
+            line-height: 1;
+            letter-spacing: -4px;
+            text-shadow: 0 4px 0 #f5c400;
+            margin-bottom: 1vh;
+        }
+
+        /* ===== TÍTULO Y TEXTO ===== */
+        .error-card h1 {
+            color: #1e1e1e;
+            font-size: clamp(1.4rem, 2.6vw, 2rem);
+            font-weight: 700;
+            margin-bottom: 1.4vh;
+            letter-spacing: -0.3px;
+        }
+
+        .error-card p {
+            color: #555;
+            font-size: clamp(0.95rem, 1.3vw, 1.15rem);
+            line-height: 1.55;
+            max-width: 42ch;
+            margin-bottom: 3.5vh;
+        }
+
+        .error-card p strong {
+            color: #8a0e0e;
+        }
+
+        /* ===== BOTONES ===== */
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2vw;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .btn {
+            border: none;
+            padding: 1.6vh 3vw;
+            border-radius: 3rem;
+            font-weight: 700;
+            font-size: clamp(0.9rem, 1.05vw, 1.05rem);
+            cursor: pointer;
+            transition: 0.2s ease;
+            letter-spacing: 0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6vw;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background-color: #d71920;
+            color: white;
+            box-shadow: 0 0.4vh 1.2vh rgba(215, 25, 32, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #b01218;
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 0.8vh 1.8vh rgba(215, 25, 32, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: #f5c400;
+            color: #8a0e0e;
+            box-shadow: 0 0.4vh 1.2vh rgba(245, 196, 0, 0.35);
+        }
+
+        .btn-secondary:hover {
+            background-color: #e0b000;
+            transform: translateY(-2px) scale(1.03);
+        }
+
+        /* ===== PIE DE TARJETA ===== */
+        .footer-note {
+            margin-top: 3.5vh;
+            padding-top: 2vh;
+            border-top: 2px solid #f0e6c5;
+            width: 100%;
+            font-size: clamp(0.75rem, 0.95vw, 0.9rem);
+            color: #7a7a7a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6vw;
+        }
+
+        .footer-note i {
+            color: #f5c400;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .error-card {
+                padding: 4vh 6vw 3vh;
+                border-left-width: 1.4vw;
+                border-radius: 1.5rem;
+            }
+
+            .actions {
+                flex-direction: column-reverse;
+                gap: 1.2vh;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+                padding: 1.7vh 3vw;
+            }
+
+            .error-code {
+                letter-spacing: -2px;
+            }
+        }
+
+        @media (max-width: 400px) {
+            body {
+                padding: 2vh 3vw;
+            }
+
+            .error-card {
+                padding: 3.5vh 5vw 2.5vh;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="error-card">
+        <div class="icon-circle">
+            <i class="fas fa-compass"></i>
+        </div>
+
+        <div class="error-code">404</div>
+
+        <h1>Página no encontrada</h1>
+
+        <p>
+            La ruta que intentas visitar <strong>no existe</strong> o fue movida.
+            Verifica la dirección o regresa al inicio del sistema para continuar.
+        </p>
+
+        <div class="actions">
+            <a href="javascript:history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Regresar
+            </a>
+        </div>
+
+        <div class="footer-note">
+            <i class="fas fa-circle-info"></i>
+            Sistema de Incidentes · Gestión Municipal
+        </div>
+    </main>
+
+</body>
+
+</html>

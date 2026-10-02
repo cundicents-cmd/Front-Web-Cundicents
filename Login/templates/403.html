@@ -1,0 +1,387 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+    <title>Acceso denegado · Sistema de Incidentes</title>
+    <link rel="icon" type="image/png" href="{% static 'img/log.png' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f8eaa4;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4vh 4vw;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ===== DECORACIÓN DE FONDO ===== */
+        body::before,
+        body::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        body::before {
+            width: 45vw;
+            height: 45vw;
+            max-width: 620px;
+            max-height: 620px;
+            background: radial-gradient(circle, rgba(215, 25, 32, 0.12) 0%, transparent 70%);
+            top: -15vw;
+            right: -15vw;
+        }
+
+        body::after {
+            width: 50vw;
+            height: 50vw;
+            max-width: 700px;
+            max-height: 700px;
+            background: radial-gradient(circle, rgba(245, 196, 0, 0.28) 0%, transparent 70%);
+            bottom: -20vw;
+            left: -20vw;
+        }
+
+        /* ===== TARJETA PRINCIPAL ===== */
+        .error-card {
+            position: relative;
+            z-index: 1;
+            background: white;
+            max-width: 620px;
+            width: 100%;
+            border-radius: 2rem;
+            padding: 5vh 4vw 4vh;
+            box-shadow: 0 2vh 5vh rgba(0, 0, 0, 0.12);
+            border-left: 0.8vw solid #f5c400;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: fadeUp 0.5s ease;
+        }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* ===== CANDADO ===== */
+        .lock-wrapper {
+            position: relative;
+            width: clamp(100px, 13vw, 140px);
+            height: clamp(100px, 13vw, 140px);
+            margin-bottom: 2.5vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lock-wrapper::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: #fff8e0;
+            border: 3px dashed #d71920;
+            animation: shake 3s ease-in-out infinite;
+        }
+
+        @keyframes shake {
+
+            0%,
+            88%,
+            100% {
+                transform: rotate(0deg);
+            }
+
+            90% {
+                transform: rotate(-6deg);
+            }
+
+            92% {
+                transform: rotate(6deg);
+            }
+
+            94% {
+                transform: rotate(-4deg);
+            }
+
+            96% {
+                transform: rotate(4deg);
+            }
+
+            98% {
+                transform: rotate(-2deg);
+            }
+        }
+
+        .lock-wrapper i {
+            position: relative;
+            z-index: 1;
+            color: #d71920;
+            font-size: clamp(2.6rem, 5.5vw, 4rem);
+        }
+
+        /* ===== BADGE 403 ===== */
+        .error-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6vw;
+            background: #fdeaea;
+            color: #b02b2b;
+            font-weight: 800;
+            font-size: clamp(0.8rem, 1vw, 1rem);
+            letter-spacing: 2px;
+            padding: 0.7vh 2vw;
+            border-radius: 3rem;
+            border: 1.5px solid #d71920;
+            margin-bottom: 1.6vh;
+        }
+
+        .error-badge i {
+            font-size: 0.9em;
+        }
+
+        /* ===== TÍTULO Y TEXTO ===== */
+        .error-card h1 {
+            color: #d71920;
+            font-size: clamp(1.6rem, 3vw, 2.4rem);
+            font-weight: 800;
+            margin-bottom: 1.4vh;
+            letter-spacing: -0.5px;
+            line-height: 1.15;
+        }
+
+        .error-card p {
+            color: #555;
+            font-size: clamp(0.95rem, 1.3vw, 1.15rem);
+            line-height: 1.55;
+            max-width: 44ch;
+            margin-bottom: 2vh;
+        }
+
+        .error-card p strong {
+            color: #8a0e0e;
+        }
+
+        /* ===== CUADRO DE MOTIVOS ===== */
+        .reasons {
+            width: 100%;
+            background: #fefcf3;
+            border-left: 0.4vw solid #f5c400;
+            border-radius: 1rem;
+            padding: 2vh 2vw;
+            margin-bottom: 3.5vh;
+            text-align: left;
+        }
+
+        .reasons h3 {
+            font-size: clamp(0.9rem, 1.1vw, 1.05rem);
+            color: #8a0e0e;
+            font-weight: 700;
+            margin-bottom: 1vh;
+            display: flex;
+            align-items: center;
+            gap: 0.5vw;
+        }
+
+        .reasons h3 i {
+            color: #d71920;
+        }
+
+        .reasons ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.7vh;
+        }
+
+        .reasons li {
+            font-size: clamp(0.85rem, 1.05vw, 1rem);
+            color: #4a4a4a;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.7vw;
+            line-height: 1.45;
+        }
+
+        .reasons li i {
+            color: #f5c400;
+            margin-top: 0.4em;
+            font-size: 0.65em;
+            flex-shrink: 0;
+        }
+
+        /* ===== BOTONES ===== */
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.2vw;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .btn {
+            border: none;
+            padding: 1.6vh 3vw;
+            border-radius: 3rem;
+            font-weight: 700;
+            font-size: clamp(0.9rem, 1.05vw, 1.05rem);
+            cursor: pointer;
+            transition: 0.2s ease;
+            letter-spacing: 0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6vw;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .btn-primary {
+            background-color: #d71920;
+            color: white;
+            box-shadow: 0 0.4vh 1.2vh rgba(215, 25, 32, 0.3);
+        }
+
+        .btn-primary:hover {
+            background-color: #b01218;
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 0 0.8vh 1.8vh rgba(215, 25, 32, 0.4);
+        }
+
+        .btn-secondary {
+            background-color: #f5c400;
+            color: #8a0e0e;
+            box-shadow: 0 0.4vh 1.2vh rgba(245, 196, 0, 0.35);
+        }
+
+        .btn-secondary:hover {
+            background-color: #e0b000;
+            transform: translateY(-2px) scale(1.03);
+        }
+
+        /* ===== PIE DE TARJETA ===== */
+        .footer-note {
+            margin-top: 3.5vh;
+            padding-top: 2vh;
+            border-top: 2px solid #f0e6c5;
+            width: 100%;
+            font-size: clamp(0.75rem, 0.95vw, 0.9rem);
+            color: #7a7a7a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6vw;
+        }
+
+        .footer-note i {
+            color: #f5c400;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 600px) {
+            .error-card {
+                padding: 4vh 6vw 3vh;
+                border-left-width: 1.4vw;
+                border-radius: 1.5rem;
+            }
+
+            .reasons {
+                padding: 1.6vh 4vw;
+                border-left-width: 1vw;
+            }
+
+            .actions {
+                flex-direction: column-reverse;
+                gap: 1.2vh;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+                padding: 1.7vh 3vw;
+            }
+
+            .error-badge {
+                padding: 0.7vh 4vw;
+            }
+        }
+
+        @media (max-width: 400px) {
+            body {
+                padding: 2vh 3vw;
+            }
+
+            .error-card {
+                padding: 3.5vh 5vw 2.5vh;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="error-card">
+        <div class="lock-wrapper">
+            <i class="fas fa-lock"></i>
+        </div>
+
+        <div class="error-badge">
+            <i class="fas fa-ban"></i> ERROR 403
+        </div>
+
+        <h1>Acceso denegado</h1>
+
+        <p>
+            No tienes los <strong>permisos necesarios</strong> para acceder a este recurso.
+            Si crees que es un error, contacta al administrador del sistema.
+        </p>
+
+        <div class="reasons">
+            <h3><i class="fas fa-circle-question"></i> Posibles motivos</h3>
+            <ul>
+                <li><i class="fas fa-circle"></i> Tu sesión expiró o no has iniciado sesión.</li>
+                <li><i class="fas fa-circle"></i> Tu rol no tiene acceso a este módulo.</li>
+                <li><i class="fas fa-circle"></i> El recurso fue restringido por un administrador.</li>
+            </ul>
+        </div>
+
+        <div class="actions">
+            <a href="javascript:history.back()" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Regresar
+            </a>
+
+        </div>
+
+        <div class="footer-note">
+            <i class="fas fa-shield-halved"></i>
+            Sistema de Incidentes · Gestión Municipal
+        </div>
+    </main>
+
+</body>
+
+</html>

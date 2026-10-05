@@ -4,5 +4,5 @@ import Encargado.views as VE
 
 #Rutas Encargado
 urlpatterns = [
-    #path('', VE.inicio_encargado, name="Encargado"), 
+    path('', VE.inicio_encargado, name="Encargado"), 
 ]

@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.db import connection
-from django.contrib.auth import logout, update_session_auth_hash
+from django.contrib.auth import update_session_auth_hash
 from cundicents.decorators import group_required
-from .models import VerUsuarios
+from .models import verUsuarioEncargado
 
 
 @group_required("Encargado")
@@ -48,21 +48,9 @@ def actualizar_usuario(request):
 
     # Carga de datos del usuario
     try:
-        usuario = VerUsuarios.objects.get(id=user_id)
-    except VerUsuarios.DoesNotExist:
+        usuario = verUsuarioEncargado.objects.get(id_usuario=user_id)
+    except verUsuarioEncargado.DoesNotExist:
         usuario = None
         messages.error(request, "No se encontró el registro del usuario.")
 
     return render(request, 'configuracion_e.html', {'usuario': usuario})
-
-
-# ===== Cerrar Sesión =====
-@group_required("Encargado")
-def cerrar_sesion(request):
-    logout(request)
-    messages.info(request, 'Has cerrado sesión correctamente.')
-    return redirect('login')
-
-
-
-

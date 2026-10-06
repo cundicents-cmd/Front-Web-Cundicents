@@ -93,6 +93,101 @@
             flex-direction: column;
         }
 
+        /* ===== Mensajes de Django ===== */
+        .messages-container {
+            display: flex;
+            flex-direction: column;
+            gap: 1.2vh;
+            margin-bottom: 2vh;
+        }
+
+        .alert {
+            display: flex;
+            align-items: center;
+            gap: 1vw;
+            padding: 1.6vh 1.8vw;
+            border-radius: 1rem;
+            font-size: clamp(0.9rem, 1.1vw, 1.1rem);
+            font-weight: 600;
+            box-shadow: 0 0.4vh 1.2vh rgba(0, 0, 0, 0.08);
+            animation: slideDown 0.35s ease;
+            border-left: 0.5vw solid transparent;
+        }
+
+        .alert-success {
+            background-color: #e8f8ee;
+            color: #145c2c;
+            border-left-color: #16a34a;
+        }
+
+        .alert-error,
+        .alert-danger {
+            background-color: #fdeaea;
+            color: #8a1414;
+            border-left-color: #d71920;
+        }
+
+        .alert-warning {
+            background-color: #fff8e1;
+            color: #8a6100;
+            border-left-color: #f5c400;
+        }
+
+        .alert-info {
+            background-color: #e8f1fb;
+            color: #12467e;
+            border-left-color: #2a7ad6;
+        }
+
+        .alert-icon {
+            font-weight: 900;
+            font-size: 1.2em;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.8em;
+            height: 1.8em;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.6);
+        }
+
+        .alert-text {
+            flex: 1;
+            word-break: break-word;
+            line-height: 1.35;
+        }
+
+        .alert-close {
+            background: transparent;
+            border: none;
+            font-size: 1.4em;
+            font-weight: 700;
+            cursor: pointer;
+            color: inherit;
+            opacity: 0.6;
+            padding: 0 0.4vw;
+            line-height: 1;
+            transition: 0.15s;
+        }
+
+        .alert-close:hover {
+            opacity: 1;
+            transform: scale(1.15);
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .header {
             background-color: white;
             border-left: 0.6vw solid #d71920;
@@ -249,7 +344,6 @@
             transform: scale(1.08);
         }
 
-        /* ===== INDICADOR DE REQUISITOS DE CONTRASEÑA ===== */
         .password-hint {
             display: flex;
             flex-direction: column;
@@ -285,7 +379,6 @@
             font-weight: 700;
         }
 
-        /* Mensaje de error de correo */
         .email-error {
             color: #b02b2b;
             font-size: clamp(0.75rem, 0.95vw, 0.9rem);
@@ -301,6 +394,7 @@
         .form-actions {
             display: flex;
             justify-content: flex-end;
+            align-items: center;
             gap: 1.4vw;
             flex-wrap: wrap;
             margin-top: auto;
@@ -334,6 +428,20 @@
             background-color: #12813c;
             transform: scale(1.02);
             box-shadow: 0 0.6vh 1.8vh rgba(22, 163, 74, 0.4);
+        }
+
+        .btn-cerrar-sesion {
+            background-color: #d71920;
+            color: white;
+            box-shadow: 0 0.4vh 1.2vh rgba(215, 25, 32, 0.3);
+            flex: 1 1 auto;
+            max-width: 260px;
+        }
+
+        .btn-cerrar-sesion:hover {
+            background-color: #a80000;
+            transform: scale(1.02);
+            box-shadow: 0 0.6vh 1.8vh rgba(215, 25, 32, 0.4);
         }
 
         @media (max-width: 820px) {
@@ -425,6 +533,11 @@
                 font-size: clamp(1.2rem, 3.8vw, 1.8rem);
             }
 
+            .form-actions {
+                flex-direction: column-reverse;
+                gap: 1.2vh;
+            }
+
             .form-actions button {
                 width: 100%;
                 max-width: none;
@@ -444,6 +557,12 @@
             .password-hint {
                 font-size: clamp(0.7rem, 2vw, 0.85rem);
                 padding: 1vh 3vw;
+            }
+
+            .alert {
+                padding: 1.2vh 3vw;
+                gap: 2vw;
+                border-left-width: 1.2vw;
             }
         }
 
@@ -494,15 +613,30 @@
             <img src="{% static 'img/log.png' %}" alt="Logo institucional">
         </div>
         <ul class="menu">
-            <li><a href="#">Inicio</a></li>
-            <li><a href="#">Municipios</a></li>
+            <li><a href="{% url 'Encargado' %}" class="active">Inicio</a></li>
             <li><a href="#">Incidentes</a></li>
             <li><a href="#">Reportes</a></li>
-            <li><a href="#" class="active">Modificar Usuario</a></li>
+            <li><a href="{% url 'Actualizar-Usuario-E' %}">Configuración</a></li>
         </ul>
     </aside>
 
     <main class="content">
+
+        {% if messages %}
+        <div class="messages-container">
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <span class="alert-icon">
+                    {% if message.tags == 'success' %}✓{% elif message.tags == 'error' %}✕{% elif message.tags ==
+                    'warning' %}⚠{% else %}ℹ{% endif %}
+                </span>
+                <span class="alert-text">{{ message }}</span>
+                <button type="button" class="alert-close" aria-label="Cerrar">×</button>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <div class="header">
             <h1>Modificar Usuario</h1>
             <p>Actualiza los datos permitidos de la cuenta</p>
@@ -511,34 +645,55 @@
         <div class="form-card">
             <h2>Datos del usuario</h2>
 
-            <form id="modificarForm" autocomplete="off" novalidate>
+            <form id="modificarForm" autocomplete="off" novalidate method="POST"
+                action="{% url 'Actualizar-Usuario-E' %}">
+                {% csrf_token %}
+
+                {# Identificador oculto del usuario (id_usuario del modelo verUsuarioEncargado) #}
+                <input type="hidden" id="id_usuario" name="id_usuario" value="{{ usuario.id_usuario|default:'' }}">
+
                 <div class="form-grid">
 
                     <div class="form-group">
                         <label for="nombre"><i>●</i> Nombre (no editable)</label>
-                        <input type="text" id="nombre" name="nombre" value="María" readonly>
+                        <input type="text" id="nombre" name="nombre" value="{{ usuario.nombre|default:'' }}" readonly>
                     </div>
 
                     <div class="form-group">
-                        <label for="apellidos"><i>●</i> Apellidos (no editable)</label>
-                        <input type="text" id="apellidos" name="apellidos" value="López Martínez" readonly>
+                        <label for="apellido"><i>●</i> Apellido (no editable)</label>
+                        <input type="text" id="apellido" name="apellido" value="{{ usuario.apellido|default:'' }}"
+                            readonly>
                     </div>
 
                     <div class="form-group">
                         <label for="cedula"><i>●</i> Cédula (no editable)</label>
-                        <input type="number" id="cedula" name="cedula" value="0801199012345" readonly>
+                        <input type="number" id="cedula" name="cedula" value="{{ usuario.cedula|default:'' }}" readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="municipio"><i>●</i> Municipio (no editable)</label>
+                        <input type="text" id="municipio" name="municipio" value="{{ usuario.municipio|default:'' }}"
+                            readonly>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tp_incidente"><i>●</i> Tipo de Incidente (no editable)</label>
+                        <input type="text" id="tp_incidente" name="tp_incidente"
+                            value="{{ usuario.tp_incidente|default:'' }}" readonly>
                     </div>
 
                     <div class="form-group">
                         <label for="correo"><i>✉</i> Correo electrónico</label>
-                        <input type="email" id="correo" name="correo" value="usuario@ejemplo.com" required>
+                        <input type="email" id="correo" name="correo" value="{{ usuario.correo|default:'' }}" required>
                         <span class="email-error" id="emailError"></span>
                     </div>
 
                     <div class="form-group">
-                        <label for="password"><i>🔒</i> Contraseña <span
-                                style="font-weight:400; color:#666; font-size:0.85em;">(opcional, dejar vacío para no
-                                cambiar)</span></label>
+                        <label for="password"><i>🔒</i> Contraseña
+                            <span style="font-weight:400; color:#666; font-size:0.85em;">
+                                (opcional, dejar vacío para no cambiar)
+                            </span>
+                        </label>
                         <div class="password-wrapper">
                             <input type="password" id="password" name="password"
                                 placeholder="Dejar vacío para no cambiar"
@@ -548,7 +703,6 @@
                                 aria-label="Mostrar u ocultar contraseña">👁️</button>
                         </div>
 
-                        <!-- Indicador de requisitos -->
                         <div class="password-hint" id="passwordHint">
                             <span class="req" data-req="length"><span class="icon">✗</span> Mínimo 8 caracteres</span>
                             <span class="req" data-req="lower"><span class="icon">✗</span> Al menos una letra
@@ -562,19 +716,10 @@
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="municipio"><i>📍</i> Municipio</label>
-                        <input type="text" id="municipio" name="municipio" readonly>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="tipoIncidente"><i>⚠️</i> Tipo de incidente</label>
-                        <input type="text" id="tipoIncidente" name="tipoIncidente" readonly>
-                    </div>
-
                 </div>
 
                 <div class="form-actions">
+                    <button type="button" class="btn-cerrar-sesion" id="btnCerrarSesion">Cerrar Sesión</button>
                     <button type="submit" class="btn-guardar">Guardar Cambios</button>
                 </div>
             </form>
@@ -589,8 +734,8 @@
             const form = document.getElementById('modificarForm');
             const correoInput = document.getElementById('correo');
             const emailError = document.getElementById('emailError');
+            const btnCerrarSesion = document.getElementById('btnCerrarSesion');
 
-            // ===== REQUISITOS DE CONTRASEÑA =====
             const REGEX = {
                 length: val => val.length >= 8,
                 lower: val => /[a-z]/.test(val),
@@ -599,10 +744,30 @@
                 symbol: val => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(val)
             };
 
-            // ===== DOMINIOS DE CORREO PERMITIDOS =====
-            const DOMINIOS_PERMITIDOS = [
-                'gmail.com', 'hotmail.com', 'outlook.com'
-            ];
+            const DOMINIOS_PERMITIDOS = ['gmail.com', 'hotmail.com', 'outlook.com'];
+
+            // ===== Cerrar alertas de mensajes de Django =====
+            document.querySelectorAll('.alert-close').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const alert = btn.closest('.alert');
+                    if (alert) {
+                        alert.style.transition = 'opacity 0.3s, transform 0.3s';
+                        alert.style.opacity = '0';
+                        alert.style.transform = 'translateY(-10px)';
+                        setTimeout(() => alert.remove(), 300);
+                    }
+                });
+            });
+
+            // Auto-ocultar mensajes de éxito después de 5 segundos
+            document.querySelectorAll('.alert-success').forEach(function (alert) {
+                setTimeout(function () {
+                    alert.style.transition = 'opacity 0.4s, transform 0.4s';
+                    alert.style.opacity = '0';
+                    alert.style.transform = 'translateY(-10px)';
+                    setTimeout(() => alert.remove(), 400);
+                }, 5000);
+            });
 
             toggleBtn.addEventListener('click', function () {
                 const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
@@ -610,7 +775,6 @@
                 toggleBtn.textContent = type === 'password' ? '👁️' : '🙈';
             });
 
-            // ===== ACTUALIZAR INDICADOR EN VIVO =====
             function actualizarHint() {
                 const val = passwordInput.value;
                 let todosOk = true;
@@ -645,10 +809,8 @@
 
             passwordInput.addEventListener('input', actualizarHint);
 
-            // ===== VALIDACIÓN DE CONTRASEÑA =====
             function validarPassword() {
                 const val = passwordInput.value;
-                // Si está vacío, no hay error (es opcional)
                 if (val.length === 0) return [];
 
                 const errores = [];
@@ -660,7 +822,6 @@
                 return errores;
             }
 
-            // ===== VALIDACIÓN DE CORREO =====
             function validarCorreo() {
                 const valor = correoInput.value.trim();
                 emailError.textContent = '';
@@ -674,7 +835,6 @@
                     return false;
                 }
 
-                // Formato básico de correo
                 const regexEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 if (!regexEmail.test(valor)) {
                     emailError.textContent = 'Ingresa un correo electrónico válido (ej: usuario@dominio.com).';
@@ -683,7 +843,6 @@
                     return false;
                 }
 
-                // Verificar dominio permitido
                 const dominio = valor.split('@')[1].toLowerCase();
                 if (!DOMINIOS_PERMITIDOS.includes(dominio)) {
                     emailError.textContent = `Dominio no permitido. Usa: ${DOMINIOS_PERMITIDOS.join(', ')}.`;
@@ -696,9 +855,7 @@
                 return true;
             }
 
-            // Validación en vivo del correo
             correoInput.addEventListener('input', function () {
-                // Solo validar si el campo no está vacío o si ya tenía error
                 if (correoInput.value.trim() !== '' || emailError.classList.contains('visible')) {
                     validarCorreo();
                 } else {
@@ -707,49 +864,30 @@
                 }
             });
 
-            // ===== VALORES INICIALES DE EJEMPLO =====
-            document.getElementById('municipio').value = 'Tegucigalpa';
-            document.getElementById('tipoIncidente').value = 'Robo';
+            btnCerrarSesion.addEventListener('click', function () {
+                const confirmar = confirm('¿Estás seguro de que deseas cerrar sesión?');
+                if (confirmar) {
+                    window.location.href = "{% url 'Logout' %}";
+                }
+            });
 
-            // ===== ENVÍO DEL FORMULARIO =====
             form.addEventListener('submit', function (e) {
-                e.preventDefault();
-
                 const correo = correoInput.value.trim();
                 const password = passwordInput.value;
-                const municipio = document.getElementById('municipio').value;
-                const tipoIncidente = document.getElementById('tipoIncidente').value;
 
-                // Validar correo
                 if (!validarCorreo()) {
+                    e.preventDefault();
                     correoInput.focus();
                     return;
                 }
 
-                // Validar campos obligatorios (excepto contraseña)
-                if (!correo || !municipio || !tipoIncidente) {
-                    alert('⚠️ Por favor completa todos los campos obligatorios.');
-                    return;
-                }
-
-                // Validar contraseña solo si se ingresó algo
                 const erroresPass = validarPassword();
                 if (erroresPass.length > 0) {
+                    e.preventDefault();
                     alert('⚠️ La contraseña debe contener:\n- ' + erroresPass.join('\n- '));
                     passwordInput.focus();
                     return;
                 }
-
-                // Construir mensaje de éxito
-                let mensaje = `✅ Cambios guardados:\n\nCorreo: ${correo}\nMunicipio: ${municipio}\nTipo incidente: ${tipoIncidente}`;
-                if (password.length > 0) {
-                    mensaje += `\nContraseña: (actualizada correctamente)`;
-                } else {
-                    mensaje += `\nContraseña: (sin cambios)`;
-                }
-                mensaje += `\n\n(Simulación, no se guardó en base de datos)`;
-
-                alert(mensaje);
             });
         })();
     </script>

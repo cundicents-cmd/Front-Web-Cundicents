@@ -592,12 +592,12 @@
             <img src="{% static 'img/log.png' %}" alt="Logo institucional">
         </div>
         <ul class="menu">
-            <li><a href="inicio_m.html">Inicio</a></li>
-            <li><a href="sectores_m.html" class="active">Sectores</a></li>
-            <li><a href="encargados_m.html">Encargados</a></li>
-            <li><a href="#">Incidentes</a></li>
-            <li><a href="reportes_m.html">Reportes</a></li>
-            <li><a href="configuracion_m.html">Configuración</a></li>
+            <li><a href="{% url 'Municipalidad'%}">Inicio</a></li>
+            <li><a href="{% url 'Sectores'%}" class="active">Sectores</a></li>
+            <li><a href="{% url 'Encargados'%}">Encargados</a></li>
+            <li><a href="{% url 'Reportes-M'%}">Historial de incidentes</a></li>
+            <li><a href="{% url 'Lista-Incidentes-M'%}">Reportes activos</a></li>
+            <li><a href="{% url 'Actualizar-Usuario-M'%}">Perfil</a></li>
         </ul>
     </aside>
 

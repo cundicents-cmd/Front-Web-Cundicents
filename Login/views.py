@@ -56,7 +56,7 @@ def logout_g(request):
 def error_403(request):
     return render(request, "403.html")
 
-def error_404(request, execption):
+def error_404(request):
     return render(request, "404.html")
 
 #Recuperacion de contraseña

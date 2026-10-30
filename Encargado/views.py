@@ -4,15 +4,13 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django.shortcuts import render, redirect
+from datetime import datetime, timedelta
 from django.contrib import messages
 from django.db import connection
 from django.contrib.auth import update_session_auth_hash
 from cundicents.decorators import group_required
-from .models import verUsuarioEncargado, ver_Usuario_Municipio_Responsabilidad, VerListaIncidentes, VerReportes, VerMunicipios
+from .models import verUsuarioEncargado, ver_Usuario_Municipio_Responsabilidad, VerListaIncidentes, VerReportes, VerMunicipios, VerHistoricoIncidentes
 
-@group_required("Encargado")
-def inicio_encargado(request):
-    return render(request, "inicio_e.html")
 
 #Views de Lista de incidentes acticos
 def _limpiar(valor):
@@ -238,6 +236,98 @@ def _queryset_filtrado_a(request):
 
     return qs.order_by('-id_prioridad', '-fecha_hora')
 
+def _datos_inicio_encargado(request):
+    id_municipio, ids_incidentes_visibles = _contexto_incidentes_del_usuario(request)
+
+    if id_municipio is None or not ids_incidentes_visibles:
+        return JsonResponse({
+            'ok': True,
+            'kpis':    {'pendiente': 0, 'revision': 0,
+                        'solucionando': 0, 'atendidos_semana': 0},
+            'cola':    [],
+            'estados': [],
+            'estado_actual': '',
+            'municipio': '',
+        })
+
+    base = VerReportes.objects.filter(
+        id_municipio=id_municipio,
+        id_incidente__in=ids_incidentes_visibles,
+    )
+
+    ahora   = timezone.now()
+    hace_7d = ahora - timedelta(days=7)
+
+    # KPIs por estado
+    pendiente    = base.filter(id_estado=1).count()
+    revision     = base.filter(id_estado=2).count()
+    solucionando = base.filter(id_estado=3).count()
+
+    # Atendidos esta semana (vienen del histórico)
+    mun = _municipio_del_usuario(request)
+    if mun:
+        atendidos_semana = VerHistoricoIncidentes.objects.filter(
+            municipio=mun.municipio,
+            fecha_hora__gte=hace_7d,
+        ).count()
+    else:
+        atendidos_semana = 0
+
+    # Filtro opcional por estado (chips)
+    estado_filtro = (request.GET.get('estado') or '').strip()
+    qs = base
+    if estado_filtro:
+        try:
+            qs = qs.filter(id_estado=int(estado_filtro))
+        except (TypeError, ValueError):
+            pass
+
+    # Top 10: mayor prioridad primero, más antiguos primero
+    cola_qs = qs.order_by('-id_prioridad', 'fecha_hora')[:10]
+
+    cola = [{
+        'id':           r.id,
+        'sector':       r.sector or '—',
+        'prioridad':    r.tp_prioridad or '—',
+        'id_prioridad': r.id_prioridad,
+        'incidente':    r.incidente or '—',
+        'estado':       r.estado or '—',
+        'id_estado':    r.id_estado,
+        'fecha_hora':   r.fecha_hora.isoformat() if r.fecha_hora else None,
+    } for r in cola_qs]
+
+    # Solo los estados presentes en los datos del encargado
+    estados_presentes = set(base.values_list('id_estado', flat=True).distinct())
+    estados = [e for e in _catalogo_estados() if e['id'] in estados_presentes]
+
+    return JsonResponse({
+        'ok': True,
+        'kpis': {
+            'pendiente':        pendiente,
+            'revision':         revision,
+            'solucionando':     solucionando,
+            'atendidos_semana': atendidos_semana,
+        },
+        'cola':          cola,
+        'estados':       estados,
+        'estado_actual': estado_filtro,
+        'municipio':     mun.municipio if mun else '',
+    })
+@group_required("Encargado")
+def inicio_encargado(request):
+    """Pantalla de inicio: bandeja de trabajo."""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return _datos_inicio_encargado(request)
+
+    mun = _municipio_del_usuario(request)
+    nombre = request.user.get_full_name() or request.user.username or 'Encargado'
+
+    return render(request, 'inicio_e.html', {
+        'nombre_usuario':    nombre,
+        'municipio_usuario': mun.municipio if mun else '',
+    })
+
+
 @group_required("Encargado")
 def reportes_a(request):
     return render(request, 'lista_reportes_e.html')
@@ -414,6 +504,7 @@ def api_actualizar_incidente_a(request, pk):
 
     except Exception as exc:  # noqa: BLE001
         return JsonResponse({'ok': False, 'error': str(exc)}, status=500)
+
 
 #View de actualizar usuario
 @group_required("Encargado")

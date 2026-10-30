@@ -5,7 +5,9 @@ import Municipal.views as VM
 #Rutas Municipalidad
 urlpatterns = [
     path('', VM.inicio_municipalidad, name="Municipalidad"),
-
+    path('Sectores-Consulta/', VM.sectores_municipalidad, name='Sectores-Municipalidad'),
+    path('Graficas/pdf/', VM.reportes_graficas_pdf_m, name='Reportes-Graficas-PDF-Municipal'),
+    
     #Gestion de sectores
     path('Sectores', VM.gestion_sectores, name="Sectores"),
     path('Sectores/Crear-Sector', VM.crear_sector, name="Crear-Sector"),

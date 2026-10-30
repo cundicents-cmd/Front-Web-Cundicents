@@ -1,27 +1,489 @@
-import re, json
+import re, json, io
 from io import BytesIO
+from datetime import datetime, timedelta
+from collections import Counter
+
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
-from django.shortcuts import render
 from django.shortcuts import render, redirect
-from .models import VerMunicipios, VerUsuarios, VerHistoricoIncidentes, VerReportes
 from django.db import connection
-from django.http import JsonResponse
+from django.db.models import Count
+from django.db.models.functions import TruncMonth, TruncDate
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.hashers import make_password
-from cundicents.decorators import group_required
 from django.contrib import messages
 from django.views.decorators.http import require_POST
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas as rl_canvas
+import matplotlib.pyplot as plt
+
+from cundicents.decorators import group_required
+from .models import (
+    VerMunicipios, VerUsuarios, VerHistoricoIncidentes,
+    VerReportes, verSectores,
+)
 
 
+
+
+
+
+
+MESES_ES = {1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun', 7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic'}
+
+_COLORES = {
+    'red':    '#d71920',
+    'yellow': '#f5c400',
+    'blue':   '#2a7faa',
+    'green':  '#6c8b3f',
+    'fondo':  '#f5f0e1',
+    'texto':  '#2c2416',
+}
+_PALETA_PIE = ['#d71920', '#f5c400', '#2a7faa', '#6c8b3f', '#9b59b6', '#e67e22']
+
+
+# ---------- helpers ----------
+def _distinct_municipios():
+    a = VerReportes.objects.values_list('municipio', flat=True).distinct()
+    b = VerHistoricoIncidentes.objects.values_list('municipio', flat=True).distinct()
+    return sorted({m for m in list(a) + list(b) if m})
+
+def _distinct_sectores():
+    a = VerReportes.objects.values_list('sector', flat=True).distinct()
+    b = VerHistoricoIncidentes.objects.values_list('sector', flat=True).distinct()
+    c = verSectores.objects.values_list('sector', flat=True).distinct()
+    return sorted({s for s in list(a) + list(b) + list(c) if s})
+
+def _distinct_tipos():
+    # VerReportes guarda el tipo en 'incidente';
+    # VerHistoricoIncidentes lo guarda en 'tipo_incidente'.
+    a = VerReportes.objects.values_list('incidente', flat=True).distinct()
+    b = VerHistoricoIncidentes.objects.values_list('tipo_incidente', flat=True).distinct()
+    return sorted({t for t in list(a) + list(b) if t})
+
+def _apply_filters(qs, municipio, sector, tipo, tipo_field):
+    qs = qs.filter(fecha_hora__isnull=False)
+    if municipio and municipio != 'todos':
+        qs = qs.filter(municipio=municipio)
+    if sector and sector != 'todos':
+        qs = qs.filter(sector=sector)
+    if tipo and tipo != 'todos':
+        qs = qs.filter(**{tipo_field: tipo})
+    return qs
+
+def _distinct_municipios():
+    a = VerReportes.objects.values_list('municipio', flat=True).distinct()
+    b = VerHistoricoIncidentes.objects.values_list('municipio', flat=True).distinct()
+    return sorted({m for m in list(a) + list(b) if m})
+
+def _distinct_sectores():
+    a = VerReportes.objects.values_list('sector', flat=True).distinct()
+    b = VerHistoricoIncidentes.objects.values_list('sector', flat=True).distinct()
+    c = verSectores.objects.values_list('sector', flat=True).distinct()
+    return sorted({s for s in list(a) + list(b) + list(c) if s})
+
+def _distinct_tipos():
+    a = VerReportes.objects.values_list('incidente', flat=True).distinct()
+    b = VerHistoricoIncidentes.objects.values_list('tipo_incidente', flat=True).distinct()
+    return sorted({t for t in list(a) + list(b) if t})
+
+def _apply_filters(qs, municipio, sector, tipo, tipo_field):
+    qs = qs.filter(fecha_hora__isnull=False)
+    if municipio and municipio != 'todos':
+        qs = qs.filter(municipio=municipio)
+    if sector and sector != 'todos':
+        qs = qs.filter(sector=sector)
+    if tipo and tipo != 'todos':
+        qs = qs.filter(**{tipo_field: tipo})
+    return qs
+
+def _build_reporte_data(municipio, sector, tipo):
+    activos   = _apply_filters(VerReportes.objects.all(),
+                               municipio, sector, tipo, 'incidente')
+    resueltos = _apply_filters(VerHistoricoIncidentes.objects.all(),
+                               municipio, sector, tipo, 'tipo_incidente')
+
+    total_activos   = activos.count()
+    total_resueltos = resueltos.count()
+    pendientes      = activos.filter(estado__icontains='pend').count()
+
+    # --- 1) Incidentes por mes (últimos 6 meses) ---
+    hoy   = datetime.now()
+    meses = []
+    for i in range(5, -1, -1):
+        m, y = hoy.month - i, hoy.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        meses.append((y, m))
+
+    act_por_mes = {
+        (r['m'].year, r['m'].month): r['c']
+        for r in activos.annotate(m=TruncMonth('fecha_hora'))
+                         .values('m').annotate(c=Count('id'))
+    }
+    res_por_mes = {
+        (r['m'].year, r['m'].month): r['c']
+        for r in resueltos.annotate(m=TruncMonth('fecha_hora'))
+                          .values('m').annotate(c=Count('id'))
+    }
+    por_mes = {
+        'labels':    [MESES_ES[m] for (_, m) in meses],
+        'activos':   [act_por_mes.get((y, m), 0) for (y, m) in meses],
+        'resueltos': [res_por_mes.get((y, m), 0) for (y, m) in meses],
+    }
+
+    # --- 2) Distribución por tipo ---
+    tipos_act = {r['incidente']:      r['c'] for r in
+                 activos.values('incidente').annotate(c=Count('id')).order_by('-c')[:6]}
+    tipos_res = {r['tipo_incidente']: r['c'] for r in
+                 resueltos.values('tipo_incidente').annotate(c=Count('id')).order_by('-c')[:6]}
+    dist = Counter()
+    for k, v in tipos_act.items(): dist[k] += v
+    for k, v in tipos_res.items(): dist[k] += v
+    dist_top = dist.most_common(6)
+    por_tipo = {
+        'labels': [d[0] for d in dist_top],
+        'values': [d[1] for d in dist_top],
+    }
+
+    # --- 3) Tendencia semanal (últimos 7 días) ---
+    hoy_d = hoy.date()
+    dias  = [hoy_d - timedelta(days=i) for i in range(6, -1, -1)]
+
+    act_por_dia = {r['d']: r['c'] for r in
+                   activos.annotate(d=TruncDate('fecha_hora'))
+                          .values('d').annotate(c=Count('id'))}
+    res_por_dia = {r['d']: r['c'] for r in
+                   resueltos.annotate(d=TruncDate('fecha_hora'))
+                            .values('d').annotate(c=Count('id'))}
+    semanal = {
+        'labels':    [d.strftime('%a %d') for d in dias],
+        'activos':   [act_por_dia.get(d, 0) for d in dias],
+        'resueltos': [res_por_dia.get(d, 0) for d in dias],
+    }
+
+    return {
+        'ok': True,
+        'kpis': {
+            'total':      total_activos + total_resueltos,
+            'activos':    total_activos,
+            'resueltos':  total_resueltos,
+            'pendientes': pendientes,
+        },
+        'por_mes':  por_mes,
+        'por_tipo': por_tipo,
+        'semanal':  semanal,
+    }
+
+def _chart_mes_png(por_mes):
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    x = list(range(len(por_mes['labels'])))
+    w = 0.38
+    ax.bar([i - w/2 for i in x], por_mes['activos'],
+           width=w, color=_COLORES['red'], label='Activos')
+    ax.bar([i + w/2 for i in x], por_mes['resueltos'],
+           width=w, color=_COLORES['yellow'], label='Resueltos')
+    ax.set_xticks(x)
+    ax.set_xticklabels(por_mes['labels'])
+    ax.set_facecolor(_COLORES['fondo'])
+    ax.set_title('Incidentes por mes', fontweight='bold', color=_COLORES['texto'])
+    ax.legend(frameon=False)
+    for s in ('top', 'right'):
+        ax.spines[s].set_visible(False)
+    fig.patch.set_facecolor(_COLORES['fondo'])
+    fig.tight_layout()
+    return _fig_to_buf(fig)
+
+def _chart_tipo_png(por_tipo):
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    if por_tipo['labels']:
+        ax.pie(
+            por_tipo['values'],
+            labels=por_tipo['labels'],
+            colors=_PALETA_PIE[:len(por_tipo['labels'])],
+            autopct='%1.1f%%',
+            startangle=90,
+            wedgeprops=dict(width=0.42, edgecolor='white'),
+            textprops={'color': _COLORES['texto']},
+        )
+        ax.axis('equal')
+    else:
+        ax.text(0.5, 0.5, 'Sin datos', ha='center', va='center',
+                color=_COLORES['texto'], fontsize=14)
+        ax.axis('off')
+    ax.set_title('Distribución por tipo', fontweight='bold', color=_COLORES['texto'])
+    fig.patch.set_facecolor(_COLORES['fondo'])
+    fig.tight_layout()
+    return _fig_to_buf(fig)
+
+def _chart_semana_png(semanal):
+    fig, ax = plt.subplots(figsize=(9, 4.5))
+    x = list(range(len(semanal['labels'])))
+    ax.plot(x, semanal['activos'], marker='o',
+            color=_COLORES['red'],   label='Activos')
+    ax.fill_between(x, semanal['activos'],   alpha=0.15, color=_COLORES['red'])
+    ax.plot(x, semanal['resueltos'], marker='s',
+            color=_COLORES['green'], label='Resueltos')
+    ax.fill_between(x, semanal['resueltos'], alpha=0.15, color=_COLORES['green'])
+    ax.set_xticks(x)
+    ax.set_xticklabels(semanal['labels'])
+    ax.set_facecolor(_COLORES['fondo'])
+    ax.set_title('Tendencia semanal (últimos 7 días)',
+                 fontweight='bold', color=_COLORES['texto'])
+    ax.legend(frameon=False)
+    for s in ('top', 'right'):
+        ax.spines[s].set_visible(False)
+    fig.patch.set_facecolor(_COLORES['fondo'])
+    fig.tight_layout()
+    return _fig_to_buf(fig)
+
+def _fig_to_buf(fig, facecolor=_COLORES['fondo']):
+    buf = io.BytesIO()
+    fig.savefig(buf, format='png', dpi=150, bbox_inches='tight', facecolor=facecolor)
+    plt.close(fig)
+    buf.seek(0)
+    return buf
+
+
+# Views inicio
 @group_required("Gubernamental")
 def inicio_gubernamental(request):
-    #granjas = VerGranjas.objects.all()
-    #context = {"granjas": granjas,}
-    return render(request, "inicio_g.html")
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return _reportes_data(request)
 
+    return render(request, 'inicio_g.html', {
+        'municipios': _distinct_municipios(),
+        'sectores':   _distinct_sectores(),
+        'tipos':      _distinct_tipos(),
+    })
 
-# Views de la seccion de municipios
+@group_required("Gubernamental")
+def _reportes_data(request):
+    municipio = request.GET.get('municipio', 'todos')
+    sector    = request.GET.get('sector',    'todos')
+    tipo      = request.GET.get('tipo',      'todos')
+
+    activos   = _apply_filters(VerReportes.objects.all(),            municipio, sector, tipo, 'incidente')
+    resueltos = _apply_filters(VerHistoricoIncidentes.objects.all(), municipio, sector, tipo, 'tipo_incidente')
+
+    total_activos   = activos.count()
+    total_resueltos = resueltos.count()
+
+    # KPI "pendientes": estados que contengan 'pend'
+    pendientes = activos.filter(estado__icontains='pend').count()
+
+    # ---- 1) Incidentes por mes (últimos 6 meses) ----
+    hoy = datetime.now()
+    meses = []
+    for i in range(5, -1, -1):
+        m, y = hoy.month - i, hoy.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        meses.append((y, m))
+
+    act_por_mes = {
+        (r['m'].year, r['m'].month): r['c']
+        for r in activos.annotate(m=TruncMonth('fecha_hora'))
+                         .values('m').annotate(c=Count('id'))
+    }
+    res_por_mes = {
+        (r['m'].year, r['m'].month): r['c']
+        for r in resueltos.annotate(m=TruncMonth('fecha_hora'))
+                          .values('m').annotate(c=Count('id'))
+    }
+
+    por_mes = {
+        'labels':    [MESES_ES[m] for (_, m) in meses],
+        'activos':   [act_por_mes.get((y, m), 0) for (y, m) in meses],
+        'resueltos': [res_por_mes.get((y, m), 0) for (y, m) in meses],
+    }
+
+    # ---- 2) Distribución por tipo ----
+    tipos_act = {r['incidente']:      r['c'] for r in
+                 activos.values('incidente').annotate(c=Count('id')).order_by('-c')[:6]}
+    tipos_res = {r['tipo_incidente']: r['c'] for r in
+                 resueltos.values('tipo_incidente').annotate(c=Count('id')).order_by('-c')[:6]}
+
+    dist = Counter()
+    for k, v in tipos_act.items():
+        dist[k] += v
+    for k, v in tipos_res.items():
+        dist[k] += v
+    dist_top = dist.most_common(6)
+
+    por_tipo = {
+        'labels': [d[0] for d in dist_top],
+        'values': [d[1] for d in dist_top],
+    }
+
+    # ---- 3) Tendencia semanal (últimos 7 días) ----
+    hoy_d = hoy.date()
+    dias  = [hoy_d - timedelta(days=i) for i in range(6, -1, -1)]
+
+    act_por_dia = {r['d']: r['c'] for r in
+                   activos.annotate(d=TruncDate('fecha_hora'))
+                          .values('d').annotate(c=Count('id'))}
+    res_por_dia = {r['d']: r['c'] for r in
+                   resueltos.annotate(d=TruncDate('fecha_hora'))
+                            .values('d').annotate(c=Count('id'))}
+
+    semanal = {
+        'labels':    [d.strftime('%a %d') for d in dias],
+        'activos':   [act_por_dia.get(d, 0) for d in dias],
+        'resueltos': [res_por_dia.get(d, 0) for d in dias],
+    }
+
+    return JsonResponse({
+        'ok': True,
+        'kpis': {
+            'total':      total_activos + total_resueltos,
+            'activos':    total_activos,
+            'resueltos':  total_resueltos,
+            'pendientes': pendientes,
+        },
+        'por_mes':  por_mes,
+        'por_tipo': por_tipo,
+        'semanal':  semanal,
+    })
+
+@group_required("Gubernamental")
+def sectores_por_municipio(request):
+    municipio = request.GET.get('municipio', 'todos')
+    if municipio == 'todos':
+        return JsonResponse({'sectores': _distinct_sectores()})
+
+    sectores = set()
+    sectores.update(VerReportes.objects.filter(municipio=municipio)
+                        .values_list('sector', flat=True).distinct())
+    sectores.update(VerHistoricoIncidentes.objects.filter(municipio=municipio)
+                        .values_list('sector', flat=True).distinct())
+    return JsonResponse({'sectores': sorted(s for s in sectores if s)})
+
+@group_required("Gubernamental")
+def reportes_graficas_pdf(request):
+    municipio = request.GET.get('municipio', 'todos')
+    sector    = request.GET.get('sector',    'todos')
+    tipo      = request.GET.get('tipo',      'todos')
+
+    data = _build_reporte_data(municipio, sector, tipo)
+
+    buf = io.BytesIO()
+    pdf = rl_canvas.Canvas(buf, pagesize=A4)
+    W, H = A4
+    marginX = 15 * mm
+    y = H - 20 * mm
+
+    # --- Título ---
+    pdf.setFillColor(colors.HexColor('#d71920'))
+    pdf.setFont('Helvetica-Bold', 18)
+    pdf.drawString(marginX, y, 'Reporte de incidentes')
+    y -= 8 * mm
+
+    # --- Filtros ---
+    etq = lambda v: 'Todos' if (not v or v == 'todos') else v
+    pdf.setFillColor(colors.HexColor('#3c3c3c'))
+    pdf.setFont('Helvetica', 10)
+    pdf.drawString(
+        marginX, y,
+        f'Municipio: {etq(municipio)}   |   Sector: {etq(sector)}   |   Tipo: {etq(tipo)}'
+    )
+    y -= 5 * mm
+    pdf.drawString(
+        marginX, y,
+        f'Generado: {datetime.now().strftime("%d/%m/%Y %H:%M")}'
+    )
+    y -= 6 * mm
+
+    # --- Línea divisoria ---
+    pdf.setStrokeColor(colors.HexColor('#f0e6c5'))
+    pdf.setLineWidth(1)
+    pdf.line(marginX, y, W - marginX, y)
+    y -= 8 * mm
+
+    # --- Caso sin datos ---
+    if data['kpis']['total'] == 0:
+        pdf.setFillColor(colors.HexColor('#664d03'))
+        pdf.setFont('Helvetica-Bold', 12)
+        pdf.drawString(
+            marginX, y,
+            'No se encontraron incidentes para los filtros seleccionados.'
+        )
+        pdf.showPage()
+        pdf.save()
+        buf.seek(0)
+
+        resp = HttpResponse(buf.getvalue(), content_type='application/pdf')
+        resp['Content-Disposition'] = 'attachment; filename="reporte_graficas.pdf"'
+        return resp
+
+    # --- KPIs (4 cajas) ---
+    k = data['kpis']
+    kpis = [
+        ('Total',      k['total'],      '#d71920'),
+        ('Activos',    k['activos'],    '#e67e22'),
+        ('Resueltos',  k['resueltos'],  '#2ecc71'),
+        ('Pendientes', k['pendientes'], '#7f8c8d'),
+    ]
+    gap = 4 * mm
+    box_w = (W - 2 * marginX - 3 * gap) / 4
+    box_h = 22 * mm
+    for i, (label, value, color) in enumerate(kpis):
+        x = marginX + i * (box_w + gap)
+        pdf.setFillColor(colors.HexColor('#f5f0e1'))
+        pdf.roundRect(x, y - box_h, box_w, box_h, 3 * mm, fill=1, stroke=0)
+        pdf.setFillColor(colors.HexColor(color))
+        pdf.setFont('Helvetica-Bold', 18)
+        pdf.drawString(x + 3 * mm, y - 10 * mm, str(value))
+        pdf.setFillColor(colors.HexColor('#3c3c3c'))
+        pdf.setFont('Helvetica', 9)
+        pdf.drawString(x + 3 * mm, y - 17 * mm, label)
+    y -= box_h + 10 * mm
+
+    # --- Gráficas (renderizadas en matplotlib) ---
+    buf_mes  = _chart_mes_png(data['por_mes'])
+    buf_tipo = _chart_tipo_png(data['por_tipo'])
+    buf_sem  = _chart_semana_png(data['semanal'])
+
+    for titulo, img_buf in [
+        ('Incidentes por mes',                 buf_mes),
+        ('Distribución por tipo',              buf_tipo),
+        ('Tendencia semanal (últimos 7 días)', buf_sem),
+    ]:
+        img_buf.seek(0)
+        reader = ImageReader(img_buf)
+        iw, ih = reader.getSize()
+        img_w = W - 2 * marginX
+        img_h = ih * img_w / iw
+
+        # salto de página si no cabe
+        if y - 6 * mm - img_h < 15 * mm:
+            pdf.showPage()
+            y = H - 20 * mm
+
+        pdf.setFillColor(colors.HexColor('#2c2416'))
+        pdf.setFont('Helvetica-Bold', 12)
+        pdf.drawString(marginX, y, titulo)
+        y -= 5 * mm
+
+        pdf.drawImage(reader, marginX, y - img_h, width=img_w, height=img_h)
+        y -= img_h + 8 * mm
+
+    pdf.save()
+    buf.seek(0)
+
+    fecha = datetime.now().strftime('%Y-%m-%d')
+    resp = HttpResponse(buf.getvalue(), content_type='application/pdf')
+    resp['Content-Disposition'] = (
+        f'attachment; filename="reporte_graficas_{fecha}.pdf"'
+    )
+    return resp
+
+# Views Gestion Municipios
 @group_required("Gubernamental")
 def gestion_municipios(request):
     municipios = VerMunicipios.objects.all()
@@ -43,7 +505,7 @@ def eliminar_municipio(request):
         id_municipio = request.POST.get('id_municipio', '').strip()
         try:
             with connection.cursor() as cursor:
-                cursor.execute( "CALL eliminar_Municipio(%s, @p_mensaje);", [id_municipio])
+                cursor.execute("CALL eliminar_Municipio(%s, @p_mensaje);", [id_municipio])
                 cursor.execute("SELECT @p_mensaje;")
                 fila = cursor.fetchone()
                 mensaje_sp = fila[0] if fila else None
@@ -51,12 +513,12 @@ def eliminar_municipio(request):
             if mensaje_sp == 'Municipio eliminado correctamente':
                 return JsonResponse({'ok': True, 'tipo': 'municipio_eliminado', 'mensaje': 'Municipio eliminado correctamente.'})
             else:
-                return JsonResponse({'ok': False, 'tipo': 'municipio_error', 'mensaje': mensaje_sp or 'Error al eliminar el municipio.', 'error': mensaje_sp or 'Error al eliminar el municipio' }, status=400)
+                return JsonResponse({'ok': False, 'tipo': 'municipio_error', 'mensaje': mensaje_sp or 'Error al eliminar el municipio.', 'error': mensaje_sp or 'Error al eliminar el municipio'}, status=400)
 
         except Exception as e:
             return JsonResponse({'ok': False, 'tipo': 'municipio_error', 'mensaje': 'Ocurrió un error al eliminar el municipio.', 'error': f'Error: {str(e)}'}, status=500)
 
-# Views de gestion de administradores
+#Views getion administradores
 @group_required("Gubernamental")
 def agregar_administrador(request):
     id = request.GET.get('id_municipio', '').strip()
@@ -145,7 +607,6 @@ def actualizar_administrador(request, id):
     correo    = request.POST.get('correo', '').strip()
     password  = request.POST.get('password', '').strip()
 
-
     # ----- Validar cédula duplicada (otro usuario) -----
     if VerUsuarios.objects.filter(cedula=cedula).exclude(id=id).exists():
         messages.error(request, 'La cédula ya está registrada por otro usuario.')
@@ -161,11 +622,13 @@ def actualizar_administrador(request, id):
         })
 
     try:
-        if password == "": passw = None
-        else: passw = make_password(password)
-        
+        if password == "":
+            passw = None
+        else:
+            passw = make_password(password)
+
         with connection.cursor() as cursor:
-            cursor.callproc('actualizar_Usuario', [id , nombre, apellidos, cedula, correo, passw])
+            cursor.callproc('actualizar_Usuario', [id, nombre, apellidos, cedula, correo, passw])
         messages.success(request, 'Administrador actualizado correctamente.')
         return redirect('Municipios')
 
@@ -176,7 +639,8 @@ def actualizar_administrador(request, id):
             'administrador': administrador
         })
 
-# Views para la seccion de configuracion
+
+# View configuracion
 @group_required("Gubernamental")
 def actualizar_usuario(request):
     user = request.user
@@ -189,8 +653,10 @@ def actualizar_usuario(request):
         correo    = request.POST.get('correo', '').strip()
         password  = (request.POST.get('password') or '').strip()
 
-        if password == "": passw = None
-        else: passw = make_password(password)
+        if password == "":
+            passw = None
+        else:
+            passw = make_password(password)
 
         try:
             with connection.cursor() as cursor:
@@ -212,7 +678,8 @@ def actualizar_usuario(request):
     context = {'usuario': usuario, }
     return render(request, 'configuracion_g.html', context)
 
-# Views para la seccion de historial de incidentes
+
+# Helpers de reportes
 def _limpiar(valor):
     """Devuelve None cuando el filtro equivale a 'todos'."""
     if valor is None:
@@ -254,25 +721,6 @@ def _formatear_fecha(dt):
     except Exception:
         pass
     return dt.strftime('%d/%m/%Y %H:%M')
-
-def _queryset_filtrado(request):
-    qs = VerHistoricoIncidentes.objects.all()
-
-    municipio = _limpiar(request.GET.get('municipio'))
-    sector = _limpiar(request.GET.get('sector'))
-    tipo = _limpiar(request.GET.get('tipo_incidente'))
-    incidente = _limpiar(request.GET.get('incidente'))
-
-    if municipio:
-        qs = qs.filter(municipio=municipio)
-    if sector:
-        qs = qs.filter(sector=sector)
-    if tipo:
-        qs = qs.filter(tipo_incidente=tipo)
-    if incidente:
-        qs = qs.filter(incidente=incidente)
-
-    return qs.order_by('-fecha_hora')
 
 def _extraer_evidencias(evidencias):
     """
@@ -412,6 +860,27 @@ def _extraer_coordenadas(ubicacion):
         return None
     return lat, lng
 
+
+# Views Historial de incidentes
+def _queryset_filtrado(request):
+    qs = VerHistoricoIncidentes.objects.all()
+
+    municipio = _limpiar(request.GET.get('municipio'))
+    sector    = _limpiar(request.GET.get('sector'))
+    tipo      = _limpiar(request.GET.get('tipo_incidente'))
+    incidente = _limpiar(request.GET.get('incidente'))
+
+    if municipio:
+        qs = qs.filter(municipio=municipio)
+    if sector:
+        qs = qs.filter(sector=sector)
+    if tipo:
+        qs = qs.filter(tipo_incidente=tipo)
+    if incidente:
+        qs = qs.filter(incidente=incidente)
+
+    return qs.order_by('-fecha_hora')
+
 @group_required("Gubernamental")
 def reportes(request):
     """Renderiza la página de reportes (mantiene el HTML/estilos actuales)."""
@@ -504,13 +973,12 @@ def api_incidente_detalle(request, pk):
 
 @group_required("Gubernamental")
 def api_reporte_pdf(request):
-    
+
     from reportlab.lib import colors as rl_colors
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import cm
     from reportlab.platypus import (Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle)
-    
 
     try:
         registros = list(_queryset_filtrado(request))
@@ -615,7 +1083,6 @@ def api_reporte_pdf(request):
     respuesta['Content-Disposition'] = f'attachment; filename="{nombre}"'
     return respuesta
 
-#Views Lista Incidentes activos
 def _queryset_filtrado_a(request):
     qs = VerReportes.objects.all()
 
@@ -629,7 +1096,7 @@ def _queryset_filtrado_a(request):
     if sector:
         qs = qs.filter(sector=sector)
     if prioridad:
-        qs = qs.filter(tp_prioridad=prioridad)  
+        qs = qs.filter(tp_prioridad=prioridad)
     if incidente:
         qs = qs.filter(incidente=incidente)
 

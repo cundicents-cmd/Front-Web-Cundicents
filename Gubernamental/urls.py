@@ -5,6 +5,8 @@ import Gubernamental.views as VG
 #Rutas Gerente
 urlpatterns = [
     path('', VG.inicio_gubernamental, name="Gobernacion"),
+    path('Sectores/', VG.sectores_por_municipio, name='Sectores-Municipio'),
+    path('Graficas/pdf/', VG.reportes_graficas_pdf, name='Reportes-Graficas-pdf'),
 
     #Gestion de municipios y sus administradores
     path('Municipios', VG.gestion_municipios, name="Municipios"),

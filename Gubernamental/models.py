@@ -9,6 +9,15 @@ class VerMunicipios(models.Model):
         managed = False
         db_table = 'ver_Municipios_Administrador'
 
+class verSectores(models.Model):
+    id = models.IntegerField(primary_key=True)
+    id_municipio = models.IntegerField()
+    sector = models.CharField(null = False, max_length=100)
+    coordenadas  = models.JSONField(null=False, blank=False) 
+    class Meta:
+        managed = False
+        db_table = 'ver_Sectores'
+
 class VerUsuarios(models.Model):
     id = models.IntegerField(primary_key=True)
     nombre = models.CharField(null = False, max_length=100)

@@ -8,7 +8,14 @@
     <title>Sistema de Incidentes · Panel Gubernamental</title>
     <link rel="icon" type="image/png" href="{% static 'img/log.png' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- AÑADIDO: Chart.js (única librería gráfica, el HTML original no traía) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
     <style>
+        /* ============================================================ */
+        /* ==========  CSS ORIGINAL — SIN MODIFICACIONES  ============ */
+        /* ============================================================ */
         * {
             margin: 0;
             padding: 0;
@@ -175,7 +182,6 @@
             font-size: clamp(0.8rem, 1.1vw, 1.2rem);
         }
 
-        /* indicadores del carrusel */
         .carousel-indicators {
             display: flex;
             justify-content: center;
@@ -333,7 +339,7 @@
             color: #555;
         }
 
-        /* ========== RESPONSIVE ========== */
+        /* ========== RESPONSIVE (original) ========== */
         @media (max-width: 820px) {
             .sidebar {
                 width: 22vw;
@@ -473,6 +479,96 @@
                 font-size: clamp(1rem, 5vw, 1.6rem);
             }
         }
+
+        /* ============================================================ */
+        /* ==========  AÑADIDOS (no alteran el diseño original)  ===== */
+        /* ============================================================ */
+
+        .no-data-msg {
+            background: #fff3cd;
+            border-left: 0.4vw solid #f5c400;
+            color: #664d03;
+            padding: 2vh 1.8vw;
+            border-radius: 1rem;
+            font-weight: 600;
+            text-align: center;
+            margin: 1vh 0 3vh;
+            font-size: clamp(0.9rem, 1.1vw, 1.2rem);
+            display: none;
+        }
+
+        .chart-placeholder canvas {
+            max-height: 32vh;
+            width: 100% !important;
+        }
+
+        .btn-consultar:disabled {
+            opacity: 0.7;
+            cursor: wait;
+            transform: none;
+        }
+
+        /* ===== AÑADIDO: botón flotante (idéntico a .btn-flotante de Reportes.html) ===== */
+        /* Posicionado pegado a la esquina inferior derecha */
+        .btn-flotante {
+            position: fixed;
+            bottom: 0.9rem;
+            right: 0.9rem;
+            background-color: #1f8b4c;
+            color: white;
+            border: none;
+            padding: 0.9rem 1.8rem;
+            border-radius: 3rem;
+            font-weight: 700;
+            font-size: 1rem;
+            box-shadow: 0 10px 25px rgba(31, 139, 76, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            cursor: pointer;
+            transition: 0.2s ease;
+            z-index: 999;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.4px;
+        }
+
+        .btn-flotante:hover {
+            background-color: #146b3a;
+            transform: scale(1.04);
+            box-shadow: 0 14px 30px rgba(31, 139, 76, 0.5);
+        }
+
+        .btn-flotante i {
+            font-size: 1.2rem;
+        }
+
+        .btn-flotante[disabled] {
+            opacity: 0.7;
+            cursor: progress;
+            transform: none;
+        }
+
+        @media (max-width: 600px) {
+            .btn-flotante {
+                bottom: 0.6rem;
+                right: 0.6rem;
+                padding: 0.7rem 1.2rem;
+                font-size: 0.85rem;
+            }
+
+            .btn-flotante i {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 400px) {
+            .btn-flotante {
+                bottom: 0.4rem;
+                right: 0.4rem;
+                padding: 0.5rem 1rem;
+                font-size: 0.75rem;
+            }
+        }
     </style>
 </head>
 
@@ -483,11 +579,11 @@
             <img src="{% static 'img/log.png' %}" alt="Logo institucional">
         </div>
         <ul class="menu">
-            <li><a href="{% url 'Gobernacion'%}" class="active">Inicio</a></li>
-            <li><a href="{% url 'Municipios'%}">Municipios</a></li>
-            <li><a href="{% url 'Reportes'%}">Historial de incidentes</a></li>
-            <li><a href="{% url 'Lista-Incidentes'%}">Reportes activos</a></li>
-            <li><a href="{% url 'Actualizar-Usuario-G'%}">Perfil</a></li>
+            <li><a href="{% url 'Gobernacion' %}" class="active">Inicio</a></li>
+            <li><a href="{% url 'Municipios' %}">Municipios</a></li>
+            <li><a href="{% url 'Reportes' %}">Historial de incidentes</a></li>
+            <li><a href="{% url 'Lista-Incidentes' %}">Reportes activos</a></li>
+            <li><a href="{% url 'Actualizar-Usuario-G' %}">Perfil</a></li>
         </ul>
     </aside>
 
@@ -497,29 +593,34 @@
             <p>Visualiza gráficas, filtra por municipio, sector y tipo de incidente.</p>
         </div>
 
+        <div id="noDataMsg" class="no-data-msg">
+            <i class="fas fa-circle-info"></i>
+            No se encontraron incidentes para los filtros seleccionados.
+        </div>
+
         <!-- ===== CARRUSEL DE GRÁFICAS ===== -->
-        <div class="carousel-container">
+        <div class="carousel-container" id="carouselContainer">
             <div class="carousel" id="carousel">
                 <div class="carousel-track" id="carouselTrack">
                     <div class="carousel-slide">
                         <div class="chart-placeholder">
                             <i class="fas fa-chart-bar"></i>
                             <h3>Incidentes por mes</h3>
-                            <p>Ene · Feb · Mar · Abr · May · Jun</p>
+                            <canvas id="chartMes"></canvas>
                         </div>
                     </div>
                     <div class="carousel-slide">
                         <div class="chart-placeholder">
                             <i class="fas fa-chart-pie"></i>
                             <h3>Distribución por tipo</h3>
-                            <p>Robo · Accidente · Incendio · Otros</p>
+                            <canvas id="chartTipo"></canvas>
                         </div>
                     </div>
                     <div class="carousel-slide">
                         <div class="chart-placeholder">
                             <i class="fas fa-chart-line"></i>
                             <h3>Tendencia semanal</h3>
-                            <p>Últimos 7 días</p>
+                            <canvas id="chartSemana"></canvas>
                         </div>
                     </div>
                 </div>
@@ -537,54 +638,51 @@
                 <label for="municipio"><i class="fas fa-city"></i> Municipio</label>
                 <select id="municipio">
                     <option value="todos">Todos</option>
-                    <option value="san_pedro">San Pedro Sula</option>
-                    <option value="tegucigalpa">Tegucigalpa</option>
-                    <option value="la_ceiba">La Ceiba</option>
-                    <option value="comayagua">Comayagua</option>
-                    <option value="choluteca">Choluteca</option>
-                    <option value="santa_rosa">Santa Rosa de Copán</option>
+                    {% for m in municipios %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
                 </select>
             </div>
             <div class="filter-group">
                 <label for="sector"><i class="fas fa-map-pin"></i> Sector</label>
                 <select id="sector">
                     <option value="todos">Todos</option>
-                    <option value="norte">Norte</option>
-                    <option value="sur">Sur</option>
-                    <option value="este">Este</option>
-                    <option value="oeste">Oeste</option>
-                    <option value="centro">Centro</option>
+                    {% for s in sectores %}<option value="{{ s }}">{{ s }}</option>{% endfor %}
                 </select>
             </div>
             <div class="filter-group">
                 <label for="tipo"><i class="fas fa-exclamation-triangle"></i> Tipo de incidente</label>
                 <select id="tipo">
                     <option value="todos">Todos</option>
-                    <option value="robo">Robo</option>
-                    <option value="accidente">Accidente vial</option>
-                    <option value="incendio">Incendio</option>
-                    <option value="violencia">Violencia</option>
-                    <option value="desastre">Desastre natural</option>
+                    {% for t in tipos %}<option value="{{ t }}">{{ t }}</option>{% endfor %}
                 </select>
             </div>
             <button class="btn-consultar" id="consultarBtn">
-                <i class="fas fa-sync-alt"></i> Consultar
+                <i class="fas fa-sync-alt"></i> Generar reporte
             </button>
         </div>
 
-        <!-- ===== RESULTADOS (GRÁFICAS) ===== -->
-        <div class="results-container" id="resultsContainer">
-            <!-- Tarjetas generadas dinámicamente con JS -->
-        </div>
+        <!-- ===== RESULTADOS (KPI) ===== -->
+        <div class="results-container" id="resultsContainer"></div>
     </main>
 
+    <!-- AÑADIDO: botón flotante que llama al endpoint del backend -->
+    <button class="btn-flotante" id="generarReporteGraficasBtn" type="button">
+        <i class="fas fa-file-pdf"></i> Generar reporte
+    </button>
+
+    <script>
+        window.REPORTES_CFG = {
+            urlGraficasPdf: "{% url 'Reportes-Graficas-pdf' %}",
+            urlSectores: "{% url 'Sectores-Municipio' %}"
+        };
+    </script>
     <script>
         (function () {
-            // ---------- CARRUSEL AUTOMÁTICO ----------
+            'use strict';
+
+            // ---------- CARRUSEL (idéntico al original) ----------
             const track = document.getElementById('carouselTrack');
             const indicators = document.querySelectorAll('#carouselIndicators span');
-            let currentIndex = 0;
-            let interval;
+            let currentIndex = 0, interval;
 
             function goToSlide(index) {
                 if (index < 0) index = 0;
@@ -595,106 +693,203 @@
                     dot.classList.toggle('active', i === currentIndex);
                 });
             }
-
-            function nextSlide() {
-                const next = (currentIndex + 1) % indicators.length;
-                goToSlide(next);
-            }
-
+            function nextSlide() { goToSlide((currentIndex + 1) % indicators.length); }
             function startCarousel() {
                 if (interval) clearInterval(interval);
                 interval = setInterval(nextSlide, 4000);
             }
-
-            // click en indicadores
-            indicators.forEach((dot) => {
-                dot.addEventListener('click', function () {
-                    const index = parseInt(this.dataset.index);
-                    goToSlide(index);
-                    startCarousel(); // reinicia el temporizador
-                });
-            });
-
-            // Iniciar carrusel
+            indicators.forEach((dot) => dot.addEventListener('click', function () {
+                goToSlide(parseInt(this.dataset.index));
+                startCarousel();
+            }));
             goToSlide(0);
             startCarousel();
 
-            // ---------- GENERAR RESULTADOS (GRÁFICAS) ----------
-            const resultsContainer = document.getElementById('resultsContainer');
-
-            // Datos simulados para las gráficas
-            function generateResults(municipio, sector, tipo) {
-                // Valores aleatorios para simular
-                const base = Math.floor(Math.random() * 30) + 10;
-                const variacion = Math.floor(Math.random() * 15) + 1;
-                return {
-                    total: base + variacion,
-                    activos: Math.floor((base + variacion) * 0.6),
-                    resueltos: Math.floor((base + variacion) * 0.3),
-                    pendientes: Math.floor((base + variacion) * 0.1),
-                };
+            // ---------- GRÁFICAS ----------
+            const charts = { mes: null, tipo: null, semana: null };
+            function destroyCharts() {
+                Object.keys(charts).forEach(k => {
+                    if (charts[k]) { charts[k].destroy(); charts[k] = null; }
+                });
             }
 
-            function renderResults() {
-                const municipio = document.getElementById('municipio').value;
-                const sector = document.getElementById('sector').value;
-                const tipo = document.getElementById('tipo').value;
+            function renderNoData(mensaje) {
+                destroyCharts();
+                document.getElementById('carouselContainer').style.display = 'none';
+                document.getElementById('resultsContainer').innerHTML = '';
+                const msg = document.getElementById('noDataMsg');
+                msg.style.display = 'block';
+                msg.innerHTML = mensaje ||
+                    '<i class="fas fa-circle-info"></i> No se encontraron incidentes para los filtros seleccionados.';
+            }
 
-                // Simular datos basados en filtros (solo para demostración)
-                const data = generateResults(municipio, sector, tipo);
+            function renderReporte(data) {
+                document.getElementById('noDataMsg').style.display = 'none';
+                document.getElementById('carouselContainer').style.display = 'block';
 
-                // Construir tarjetas
+                const k = data.kpis;
                 const cards = [
-                    { icon: 'fa-chart-bar', title: 'Total reportes', value: data.total, label: 'registros' },
-                    { icon: 'fa-circle-exclamation', title: 'Activos', value: data.activos, label: 'en curso' },
-                    { icon: 'fa-check-circle', title: 'Resueltos', value: data.resueltos, label: 'cerrados' },
-                    { icon: 'fa-clock', title: 'Pendientes', value: data.pendientes, label: 'en espera' },
+                    { icon: 'fa-chart-bar', title: 'Total reportes', value: k.total, label: 'registros' },
+                    { icon: 'fa-circle-exclamation', title: 'Activos', value: k.activos, label: 'en curso' },
+                    { icon: 'fa-check-circle', title: 'Resueltos', value: k.resueltos, label: 'cerrados' },
                 ];
+                document.getElementById('resultsContainer').innerHTML = cards.map(c => `
+                <div class="result-card">
+                    <div class="card-title"><i class="fas ${c.icon}"></i> ${c.title}</div>
+                    <div class="mini-chart">
+                        <i class="fas ${c.icon}"></i>
+                        <div class="value">${c.value}</div>
+                        <div class="label">${c.label}</div>
+                    </div>
+                </div>
+            `).join('');
 
-                resultsContainer.innerHTML = cards.map(card => `
-                        <div class="result-card">
-                            <div class="card-title">
-                                <i class="fas ${card.icon}"></i> ${card.title}
-                            </div>
-                            <div class="mini-chart">
-                                <i class="fas ${card.icon}"></i>
-                                <div class="value">${card.value}</div>
-                                <div class="label">${card.label}</div>
-                            </div>
-                        </div>
-                    `).join('');
+                destroyCharts();
+                const RED = '#d71920', YELLOW = '#f5c400', BLUE = '#2a7faa', GREEN = '#6c8b3f';
 
-                // Además, agregar una tarjeta extra con "distribución por tipo" (otra gráfica)
-                const extraCard = `
-                        <div class="result-card">
-                            <div class="card-title">
-                                <i class="fas fa-chart-pie"></i> Distribución por tipo
-                            </div>
-                            <div class="mini-chart" style="flex-direction:row; flex-wrap:wrap; gap:0.6vw; justify-content:center;">
-                                <span style="background:#d71920; color:white; padding:0.3vh 1vw; border-radius:2rem; font-size:0.8rem;">Robo 35%</span>
-                                <span style="background:#f5c400; color:#1e1e1e; padding:0.3vh 1vw; border-radius:2rem; font-size:0.8rem;">Accidente 28%</span>
-                                <span style="background:#2a7faa; color:white; padding:0.3vh 1vw; border-radius:2rem; font-size:0.8rem;">Incendio 20%</span>
-                                <span style="background:#6c8b3f; color:white; padding:0.3vh 1vw; border-radius:2rem; font-size:0.8rem;">Otros 17%</span>
-                            </div>
-                        </div>
-                    `;
-                resultsContainer.insertAdjacentHTML('beforeend', extraCard);
+                charts.mes = new Chart(document.getElementById('chartMes'), {
+                    type: 'bar',
+                    data: {
+                        labels: data.por_mes.labels,
+                        datasets: [
+                            { label: 'Activos', data: data.por_mes.activos, backgroundColor: RED },
+                            { label: 'Resueltos', data: data.por_mes.resueltos, backgroundColor: YELLOW },
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+                charts.tipo = new Chart(document.getElementById('chartTipo'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: data.por_tipo.labels,
+                        datasets: [{
+                            data: data.por_tipo.values,
+                            backgroundColor: [RED, YELLOW, BLUE, GREEN, '#9b59b6', '#e67e22']
+                        }]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+                charts.semana = new Chart(document.getElementById('chartSemana'), {
+                    type: 'line',
+                    data: {
+                        labels: data.semanal.labels,
+                        datasets: [
+                            {
+                                label: 'Activos', data: data.semanal.activos,
+                                borderColor: RED, backgroundColor: 'rgba(215,25,32,.15)', tension: .3, fill: true
+                            },
+                            {
+                                label: 'Resueltos', data: data.semanal.resueltos,
+                                borderColor: GREEN, backgroundColor: 'rgba(108,139,63,.15)', tension: .3, fill: true
+                            },
+                        ]
+                    },
+                    options: { responsive: true, maintainAspectRatio: false }
+                });
+
+                goToSlide(0);
             }
 
-            // Evento del botón consultar
-            document.getElementById('consultarBtn').addEventListener('click', renderResults);
+            // ---------- AJAX: consultar ----------
+            async function generarReporte() {
+                const btn = document.getElementById('consultarBtn');
+                const original = btn.innerHTML;
+                const params = new URLSearchParams({
+                    municipio: document.getElementById('municipio').value,
+                    sector: document.getElementById('sector').value,
+                    tipo: document.getElementById('tipo').value,
+                });
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando…';
+                try {
+                    const res = await fetch(window.location.pathname + '?' + params.toString(), {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!res.ok) throw new Error('No se pudo obtener el reporte.');
+                    const data = await res.json();
+                    if (!data.ok || data.kpis.total === 0) renderNoData();
+                    else renderReporte(data);
+                } catch (err) {
+                    renderNoData('<i class="fas fa-triangle-exclamation"></i> ' + err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                }
+            }
+            document.getElementById('consultarBtn').addEventListener('click', generarReporte);
 
-            // Render inicial
-            renderResults();
+            // ---------- BACKEND: descargar PDF ----------
+            async function generarPDFGraficas() {
+                const btn = document.getElementById('generarReporteGraficasBtn');
+                const original = btn.innerHTML;
+                const params = new URLSearchParams({
+                    municipio: document.getElementById('municipio').value,
+                    sector: document.getElementById('sector').value,
+                    tipo: document.getElementById('tipo').value,
+                });
 
-            // También al cambiar los selects (opcional, pero por UX se puede)
-            // No lo hacemos automático para no saturar, solo con el botón.
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generando…';
 
-            // Pequeña mejora: al cambiar los selects, se puede resetear el carrusel (opcional)
-            // pero lo dejamos así.
+                try {
+                    const resp = await fetch(
+                        window.REPORTES_CFG.urlGraficasPdf + '?' + params.toString(),
+                        {
+                            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                            credentials: 'same-origin'
+                        }
+                    );
+                    if (!resp.ok) throw new Error('el servidor respondió ' + resp.status);
 
-            // Exponer función para debug (opcional)
-            window.renderResults = renderResults;
+                    const blob = await resp.blob();
+                    const disposicion = resp.headers.get('Content-Disposition') || '';
+                    const coincidencia = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(disposicion);
+                    const nombre = coincidencia
+                        ? decodeURIComponent(coincidencia[1])
+                        : 'reporte_graficas.pdf';
+
+                    const enlace = document.createElement('a');
+                    enlace.href = URL.createObjectURL(blob);
+                    enlace.download = nombre;
+                    document.body.appendChild(enlace);
+                    enlace.click();
+
+                    setTimeout(() => {
+                        URL.revokeObjectURL(enlace.href);
+                        enlace.remove();
+                    }, 1500);
+                } catch (err) {
+                    console.error('PDF:', err);
+                    alert('No se pudo generar el reporte: ' + err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                }
+            }
+            document.getElementById('generarReporteGraficasBtn')
+                .addEventListener('click', generarPDFGraficas);
+
+            // ---------- Sectores dependientes del municipio ----------
+            document.getElementById('municipio').addEventListener('change', async function () {
+                try {
+                    const res = await fetch(
+                        window.REPORTES_CFG.urlSectores + '?municipio=' +
+                        encodeURIComponent(this.value),
+                        { headers: { 'X-Requested-With': 'XMLHttpRequest' } }
+                    );
+                    const data = await res.json();
+                    const sel = document.getElementById('sector');
+                    sel.innerHTML = '<option value="todos">Todos</option>' +
+                        data.sectores.map(function (s) {
+                            return '<option value="' + s + '">' + s + '</option>';
+                        }).join('');
+                } catch (_) { /* filtro opcional */ }
+            });
+
+            // ---------- Reporte inicial ----------
+            generarReporte();
         })();
     </script>
 

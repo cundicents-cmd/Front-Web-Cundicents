@@ -5,9 +5,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
-    <title>Sistema de Incidentes · Municipios y Reportes</title>
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <title>Sistema de Incidentes · Inicio</title>
     <link rel="icon" type="image/png" href="{% static 'img/log.png' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
     <style>
         * {
             margin: 0;
@@ -85,7 +92,7 @@
             color: #a80000;
         }
 
-        /* ========== CONTENIDO PRINCIPAL ========== */
+        /* ========== CONTENIDO ========== */
         .content {
             margin-left: 18vw;
             width: 82vw;
@@ -94,21 +101,20 @@
             padding: 4vh 4vw;
             display: flex;
             flex-direction: column;
+            gap: 2.5vh;
         }
 
-        /* ========== HEADER ========== */
         .header {
             background-color: white;
             border-left: 0.6vw solid #d71920;
             padding: 2.8vh 2.8vw;
             border-radius: 1.2rem;
-            margin-bottom: 3vh;
             box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.08);
         }
 
         .header h1 {
             color: #d71920;
-            font-size: clamp(1.6rem, 3.2vw, 3.6rem);
+            font-size: clamp(1.4rem, 2.6vw, 2.6rem);
             margin-bottom: 0.6vh;
             font-weight: 700;
             letter-spacing: -0.5px;
@@ -116,221 +122,532 @@
 
         .header p {
             color: #444;
-            font-size: clamp(1rem, 1.4vw, 1.5rem);
+            font-size: clamp(0.95rem, 1.2vw, 1.3rem);
         }
 
-        /* ========== CARRUSEL ========== */
-        .carousel-container {
-            background: white;
-            border-radius: 1.2rem;
-            padding: 1.5vh 1.5vw;
-            margin-bottom: 3vh;
-            box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.08);
-        }
-
-        .carousel {
-            position: relative;
-            width: 100%;
-            overflow: hidden;
-            border-radius: 0.8rem;
-        }
-
-        .carousel-track {
-            display: flex;
-            transition: transform 1.2s ease-in-out;
-            will-change: transform;
-        }
-
-        .carousel-slide {
-            min-width: 100%;
-            padding: 1vh 0.5vw;
-        }
-
-        .carousel-slide .chart-placeholder {
-            background: #f5f0e1;
-            border-radius: 1rem;
-            padding: 2.5vh 2vw;
-            display: flex;
-            flex-direction: column;
+        .municipio-chip {
+            display: inline-flex;
             align-items: center;
-            justify-content: center;
-            min-height: 18vh;
-            border: 1px dashed #b0a892;
-        }
-
-        .chart-placeholder i {
-            font-size: 2.8rem;
-            color: #d71920;
-            margin-bottom: 0.6vh;
-        }
-
-        .chart-placeholder h3 {
-            font-size: clamp(1rem, 1.6vw, 1.8rem);
-            color: #2d2d2d;
+            gap: 0.5rem;
+            background: #f5f0e1;
+            border: 1px solid #e3d6b6;
+            color: #5e4b2b;
+            padding: 0.4rem 1rem;
+            border-radius: 2rem;
+            font-size: clamp(0.8rem, 1vw, 1rem);
             font-weight: 600;
+            margin-top: 0.8vh;
         }
 
-        .chart-placeholder p {
-            color: #555;
-            font-size: clamp(0.8rem, 1.1vw, 1.2rem);
+        .municipio-chip i {
+            color: #d71920;
         }
 
-        /* indicadores del carrusel */
-        .carousel-indicators {
-            display: flex;
-            justify-content: center;
-            gap: 0.6vw;
-            margin-top: 1.2vh;
+        /* KPIs */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2vh 1.5vw;
         }
 
-        .carousel-indicators span {
-            width: 1.2vw;
-            height: 1.2vh;
-            background-color: #ccc;
-            border-radius: 1rem;
-            display: inline-block;
-            transition: 0.3s;
-            cursor: pointer;
-        }
-
-        .carousel-indicators span.active {
-            background-color: #d71920;
-            width: 2.4vw;
-        }
-
-        /* ========== FILTROS ========== */
-        .filters-panel {
+        .kpi-card {
             background: white;
             border-radius: 1.2rem;
-            padding: 2.5vh 2.2vw;
-            margin-bottom: 3vh;
-            display: flex;
-            flex-wrap: wrap;
-            align-items: flex-end;
-            gap: 1.8vh 2vw;
+            padding: 2vh 1.8vw;
             box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.08);
-        }
-
-        .filter-group {
+            border-left: 0.4vw solid #f5c400;
             display: flex;
             flex-direction: column;
-            flex: 1 0 150px;
-            min-width: 120px;
+            gap: 0.4vh;
+            transition: 0.2s;
         }
 
-        .filter-group label {
-            font-weight: 600;
-            font-size: clamp(0.75rem, 0.9vw, 1rem);
-            color: #333;
+        .kpi-card .kpi-icon {
+            font-size: 1.6rem;
             margin-bottom: 0.3vh;
         }
 
-        .filter-group select {
-            padding: 1.2vh 0.8vw;
-            border-radius: 0.8rem;
-            border: 1.5px solid #ddd;
-            background: #fafafa;
-            font-size: clamp(0.8rem, 0.9vw, 1rem);
+        .kpi-card .kpi-value {
+            font-size: clamp(1.6rem, 2.4vw, 2.4rem);
+            font-weight: 700;
             color: #1e1e1e;
-            transition: 0.2s;
+            line-height: 1;
+        }
+
+        .kpi-card .kpi-label {
+            font-size: clamp(0.8rem, 0.95vw, 1rem);
+            color: #555;
+            font-weight: 500;
+        }
+
+        .kpi-card.pendiente {
+            border-left-color: #e67e22;
+        }
+
+        .kpi-card.pendiente .kpi-icon {
+            color: #e67e22;
+        }
+
+        .kpi-card.revision {
+            border-left-color: #f39c12;
+        }
+
+        .kpi-card.revision .kpi-icon {
+            color: #f39c12;
+        }
+
+        .kpi-card.solucionando {
+            border-left-color: #3498db;
+        }
+
+        .kpi-card.solucionando .kpi-icon {
+            color: #3498db;
+        }
+
+        .kpi-card.atendidos {
+            border-left-color: #2ecc71;
+        }
+
+        .kpi-card.atendidos .kpi-icon {
+            color: #2ecc71;
+        }
+
+        /* Chips */
+        .chips-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .chip {
+            background: white;
+            border: 1.5px solid #e3d6b6;
+            color: #5e4b2b;
+            padding: 0.5rem 1.1rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            font-weight: 600;
             cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
         }
 
-        .filter-group select:focus {
-            border-color: #d71920;
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(215, 25, 32, 0.15);
+        .chip:hover {
+            background: #faf3e0;
         }
 
-        .btn-consultar {
+        .chip.activo {
             background: #d71920;
             color: white;
-            border: none;
-            padding: 1.2vh 2.2vw;
-            border-radius: 2.5rem;
-            font-weight: 700;
-            font-size: clamp(0.9rem, 1.1vw, 1.2rem);
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 0.3vh 0.8vh rgba(215, 25, 32, 0.25);
-            display: flex;
-            align-items: center;
-            gap: 0.6vw;
-            white-space: nowrap;
-            margin-left: auto;
+            border-color: #d71920;
         }
 
-        .btn-consultar:hover {
-            background: #a80000;
+        /* Tabla */
+        .tabla-wrapper {
+            background: white;
+            border-radius: 1.2rem;
+            padding: 1rem 0.5rem 0.5rem 0.5rem;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+            border: 1px solid #f0e6c5;
+            overflow-x: auto;
+        }
+
+        .tabla-cola {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        .tabla-cola th {
+            text-align: left;
+            padding: 0.9rem 1rem;
+            background-color: #faf3e0;
+            color: #3f321e;
+            font-weight: 600;
+            border-bottom: 2px solid #e3d6b6;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .tabla-cola td {
+            padding: 0.8rem 1rem;
+            border-bottom: 1px solid #efe7d0;
+            color: #2b2417;
+            vertical-align: middle;
+        }
+
+        .tabla-cola tbody tr {
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .tabla-cola tbody tr:hover td {
+            background-color: #fcf8ed;
+        }
+
+        .tabla-cola tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.7rem;
+            border-radius: 1.2rem;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-prioridad-critica {
+            background: #c0392b;
+            color: #fff;
+        }
+
+        .badge-prioridad-alta {
+            background: #e67e22;
+            color: #fff;
+        }
+
+        .badge-prioridad-media {
+            background: #f1c40f;
+            color: #3d3220;
+        }
+
+        .badge-prioridad-baja {
+            background: #7f8c8d;
+            color: #fff;
+        }
+
+        .badge-prioridad-otra {
+            background: #95a5a6;
+            color: #fff;
+        }
+
+        .badge-estado-pendiente {
+            background: #e67e22;
+            color: #fff;
+        }
+
+        .badge-estado-revision {
+            background: #f39c12;
+            color: #fff;
+        }
+
+        .badge-estado-solucion {
+            background: #3498db;
+            color: #fff;
+        }
+
+        .badge-estado-default {
+            background: #95a5a6;
+            color: #fff;
+        }
+
+        .btn-ver {
+            background: #e8e0cc;
+            border: none;
+            padding: 0.35rem 0.85rem;
+            border-radius: 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #3d3220;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .btn-ver:hover {
+            background: #d71920;
+            color: white;
+        }
+
+        .tabla-vacia {
+            text-align: center;
+            padding: 2.5rem 1rem;
+            color: #7a6a4a;
+            font-style: italic;
+        }
+
+        .tabla-vacia i {
+            font-size: 2.5rem;
+            color: #d4c8a8;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .footer-link {
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .footer-link a {
+            color: #d71920;
+            font-weight: 700;
+            text-decoration: none;
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: 0.2s;
+        }
+
+        .footer-link a:hover {
+            text-decoration: underline;
+        }
+
+        /* ========== MODAL ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background-color: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(3px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            padding: 1.5rem;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-card {
+            background: white;
+            max-width: 600px;
+            width: 100%;
+            border-radius: 1.8rem;
+            padding: 2rem 2.2rem;
+            box-shadow: 0 25px 50px -8px rgba(0, 0, 0, 0.3);
+            border: 1px solid #f0e6c5;
+            max-height: 92vh;
+            display: flex;
+            flex-direction: column;
+            animation: modalFade 0.25s ease;
+        }
+
+        @keyframes modalFade {
+            from {
+                opacity: 0;
+                transform: translateY(20px) scale(0.96);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f0e6c5;
+            padding-bottom: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .modal-header h3 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2c2416;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .modal-header h3 i {
+            color: #d71920;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #7a6a4a;
+            line-height: 1;
+            transition: 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #d71920;
+            transform: rotate(90deg);
+        }
+
+        .modal-body {
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+            overflow-y: auto;
+            max-height: 66vh;
+            padding-right: 0.35rem;
+        }
+
+        .modal-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.4rem 0;
+            border-bottom: 1px dashed #efe7d0;
+            gap: 1rem;
+        }
+
+        .modal-item .label {
+            font-weight: 600;
+            color: #5e4b2b;
+            white-space: nowrap;
+        }
+
+        .modal-item .value {
+            color: #1f1a10;
+            text-align: right;
+            word-break: break-word;
+        }
+
+        .modal-item--full {
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+
+        .modal-item--full .value {
+            text-align: left;
+        }
+
+        .modal-seccion {
+            margin-top: 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .modal-seccion>.label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            color: #5e4b2b;
+        }
+
+        .modal-mapa {
+            width: 100%;
+            height: 220px;
+            border-radius: 0.9rem;
+            border: 1px solid #e3d6b6;
+            overflow: hidden;
+            background: #faf3e0;
+            z-index: 0;
+        }
+
+        .modal-vacio {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-style: italic;
+            color: #7a6a4a;
+        }
+
+        .evidencias-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .evidencia-item {
+            display: block;
+            aspect-ratio: 1 / 1;
+            border-radius: 0.6rem;
+            overflow: hidden;
+            border: 1px solid #e3d6b6;
+            background: #faf3e0;
+            cursor: zoom-in;
+            transition: 0.2s;
+        }
+
+        .evidencia-item:hover {
+            border-color: #d71920;
             transform: scale(1.02);
         }
 
-        .btn-consultar i {
-            font-size: 1.1rem;
+        .evidencia-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            pointer-events: none;
         }
 
-        /* ========== RESULTADOS (gráficas) ========== */
-        .results-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 2vh 2vw;
-            margin-top: 1vh;
+        .evidencia-item.evidencia-rota {
+            display: none;
         }
 
-        .result-card {
-            background: white;
-            border-radius: 1.2rem;
-            padding: 2.2vh 1.8vw;
-            box-shadow: 0 0.4vh 1.6vh rgba(0, 0, 0, 0.08);
-            border-left: 0.4vw solid #f5c400;
-            transition: 0.15s;
-        }
-
-        .result-card:hover {
-            box-shadow: 0 0.8vh 2.4vh rgba(0, 0, 0, 0.12);
-        }
-
-        .result-card .card-title {
-            font-weight: 700;
-            font-size: clamp(0.9rem, 1.2vw, 1.4rem);
-            color: #1e1e1e;
-            margin-bottom: 0.8vh;
+        .modal-footer {
+            margin-top: 1.5rem;
             display: flex;
-            align-items: center;
-            gap: 0.6vw;
+            justify-content: flex-end;
         }
 
-        .result-card .card-title i {
-            color: #d71920;
+        .modal-footer .btn-cerrar {
+            background-color: #e8e0cc;
+            border: none;
+            padding: 0.5rem 1.8rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
         }
 
-        .mini-chart {
-            background: #f5f0e1;
-            border-radius: 0.8rem;
-            padding: 1.8vh 1.2vw;
-            min-height: 12vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
+        .modal-footer .btn-cerrar:hover {
+            background-color: #d6c9a8;
+        }
+
+        /* ========== LIGHTBOX ========== */
+        .lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.88);
+            z-index: 1200;
             justify-content: center;
-            border: 1px dashed #c0b8a8;
+            align-items: center;
+            padding: 1.5rem;
+            cursor: zoom-out;
         }
 
-        .mini-chart i {
-            font-size: 2.2rem;
-            color: #d71920;
-            margin-bottom: 0.4vh;
+        .lightbox.active {
+            display: flex;
         }
 
-        .mini-chart .value {
-            font-weight: 700;
-            font-size: 1.4rem;
-            color: #1e1e1e;
+        .lightbox img {
+            max-width: 100%;
+            max-height: 100%;
+            border-radius: 0.6rem;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            cursor: default;
         }
 
-        .mini-chart .label {
-            font-size: 0.8rem;
-            color: #555;
+        .lightbox-close {
+            position: absolute;
+            top: 1rem;
+            right: 1.4rem;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 2.4rem;
+            line-height: 1;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .lightbox-close:hover {
+            transform: rotate(90deg);
         }
 
         /* ========== RESPONSIVE ========== */
@@ -355,34 +672,8 @@
                 padding: 1.6vh 0.8vw;
             }
 
-            .header h1 {
-                font-size: clamp(1.4rem, 3.6vw, 2.6rem);
-            }
-
-            .filters-panel {
-                padding: 2vh 2.4vw;
-                gap: 1.5vh 2vw;
-            }
-
-            .filter-group {
-                flex: 1 0 130px;
-            }
-
-            .btn-consultar {
-                padding: 1vh 2.4vw;
-            }
-
-            .results-container {
-                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            }
-
-            .carousel-indicators span {
-                width: 2vw;
-                height: 1vh;
-            }
-
-            .carousel-indicators span.active {
-                width: 3.6vw;
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
@@ -409,42 +700,23 @@
                 border-radius: 0.6rem;
             }
 
-            .filters-panel {
-                flex-direction: column;
-                align-items: stretch;
-                gap: 1.2vh;
-            }
-
-            .filter-group {
-                min-width: 100%;
-            }
-
-            .btn-consultar {
-                margin-left: 0;
-                justify-content: center;
-                padding: 1.2vh 3vw;
-            }
-
-            .results-container {
+            .kpi-grid {
                 grid-template-columns: 1fr;
             }
 
-            .header h1 {
-                font-size: clamp(1.2rem, 4.5vw, 2rem);
+            .modal-card {
+                max-width: 92%;
+                padding: 1.4rem;
             }
 
-            .carousel-slide .chart-placeholder {
-                min-height: 14vh;
-                padding: 2vh 3vw;
+            .tabla-cola th,
+            .tabla-cola td {
+                padding: 0.6rem 0.5rem;
+                font-size: 0.8rem;
             }
 
-            .carousel-indicators span {
-                width: 3vw;
-                height: 1.2vh;
-            }
-
-            .carousel-indicators span.active {
-                width: 5vw;
+            .modal-mapa {
+                height: 180px;
             }
         }
 
@@ -468,10 +740,6 @@
             .logo img {
                 width: 16vw;
             }
-
-            .header h1 {
-                font-size: clamp(1rem, 5vw, 1.6rem);
-            }
         }
     </style>
 </head>
@@ -483,217 +751,407 @@
             <img src="{% static 'img/log.png' %}" alt="Logo institucional">
         </div>
         <ul class="menu">
-            <li><a href="{% url 'Encargado'%}" class="active">Inicio</a></li>
-            <li><a href="{% url 'Lista-Incidentes-E'%}">Incidentes</a></li>
-            <li><a href="#">Reportes</a></li>
-            <li><a href="{% url 'Actualizar-Usuario-E'%}">Perfil</a></li>
+            <li><a href="{% url 'Encargado' %}" class="active">Inicio</a></li>
+            <li><a href="{% url 'Lista-Incidentes-E' %}">Incidentes</a></li>
+            <li><a href="{% url 'Actualizar-Usuario-E' %}">Perfil</a></li>
         </ul>
     </aside>
 
     <main class="content">
+
         <div class="header">
-            <h1>Municipios y Reportes</h1>
-            <p>Visualiza gráficas, filtra por municipio, sector y tipo de incidente.</p>
+            <h1 id="saludo">Buen día, {{ nombre_usuario }}</h1>
+            <p>Estos son los incidentes que requieren tu atención hoy.</p>
+            {% if municipio_usuario %}
+            <span class="municipio-chip">
+                <i class="fas fa-city"></i>
+                Municipio: {{ municipio_usuario }}
+            </span>
+            {% endif %}
         </div>
 
-        <!-- ===== CARRUSEL DE GRÁFICAS ===== -->
-        <div class="carousel-container">
-            <div class="carousel" id="carousel">
-                <div class="carousel-track" id="carouselTrack">
-                    <div class="carousel-slide">
-                        <div class="chart-placeholder">
-                            <i class="fas fa-chart-bar"></i>
-                            <h3>Incidentes por mes</h3>
-                            <p>Ene · Feb · Mar · Abr · May · Jun</p>
-                        </div>
-                    </div>
-                    <div class="carousel-slide">
-                        <div class="chart-placeholder">
-                            <i class="fas fa-chart-pie"></i>
-                            <h3>Distribución por tipo</h3>
-                            <p>Robo · Accidente · Incendio · Otros</p>
-                        </div>
-                    </div>
-                    <div class="carousel-slide">
-                        <div class="chart-placeholder">
-                            <i class="fas fa-chart-line"></i>
-                            <h3>Tendencia semanal</h3>
-                            <p>Últimos 7 días</p>
-                        </div>
-                    </div>
-                </div>
+        <div class="kpi-grid">
+            <div class="kpi-card pendiente">
+                <i class="fas fa-hourglass-half kpi-icon"></i>
+                <div class="kpi-value" id="kpi-pendiente">—</div>
+                <div class="kpi-label">Pendiente</div>
             </div>
-            <div class="carousel-indicators" id="carouselIndicators">
-                <span class="active" data-index="0"></span>
-                <span data-index="1"></span>
-                <span data-index="2"></span>
+            <div class="kpi-card revision">
+                <i class="fas fa-magnifying-glass kpi-icon"></i>
+                <div class="kpi-value" id="kpi-revision">—</div>
+                <div class="kpi-label">En revisión</div>
+            </div>
+            <div class="kpi-card solucionando">
+                <i class="fas fa-screwdriver-wrench kpi-icon"></i>
+                <div class="kpi-value" id="kpi-solucionando">—</div>
+                <div class="kpi-label">Solucionando</div>
+            </div>
+            <div class="kpi-card atendidos">
+                <i class="fas fa-check-circle kpi-icon"></i>
+                <div class="kpi-value" id="kpi-atendidos">—</div>
+                <div class="kpi-label">Atendidos esta semana</div>
             </div>
         </div>
 
-        <!-- ===== FILTROS ===== -->
-        <div class="filters-panel">
-            <div class="filter-group">
-                <label for="municipio"><i class="fas fa-city"></i> Municipio</label>
-                <select id="municipio">
-                    <option value="todos">Todos</option>
-                    <option value="san_pedro">San Pedro Sula</option>
-                    <option value="tegucigalpa">Tegucigalpa</option>
-                    <option value="la_ceiba">La Ceiba</option>
-                    <option value="comayagua">Comayagua</option>
-                    <option value="choluteca">Choluteca</option>
-                    <option value="santa_rosa">Santa Rosa de Copán</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="sector"><i class="fas fa-map-pin"></i> Sector</label>
-                <select id="sector">
-                    <option value="todos">Todos</option>
-                    <option value="norte">Norte</option>
-                    <option value="sur">Sur</option>
-                    <option value="este">Este</option>
-                    <option value="oeste">Oeste</option>
-                    <option value="centro">Centro</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="tipo"><i class="fas fa-exclamation-triangle"></i> Tipo de incidente</label>
-                <select id="tipo">
-                    <option value="todos">Todos</option>
-                    <option value="robo">Robo</option>
-                    <option value="accidente">Accidente vial</option>
-                    <option value="incendio">Incendio</option>
-                    <option value="violencia">Violencia</option>
-                    <option value="desastre">Desastre natural</option>
-                </select>
-            </div>
-            <button class="btn-consultar" id="consultarBtn">
-                <i class="fas fa-sync-alt"></i> Consultar
+        <div class="chips-row" id="chipsRow">
+            <button class="chip activo" data-estado="" type="button">
+                <i class="fas fa-list"></i> Todos
             </button>
         </div>
 
-        <!-- ===== RESULTADOS (GRÁFICAS) ===== -->
-        <div class="results-container" id="resultsContainer">
-            <!-- Tarjetas generadas dinámicamente con JS -->
+        <div class="tabla-wrapper">
+            <table class="tabla-cola">
+                <thead>
+                    <tr>
+                        <th>Prioridad</th>
+                        <th>ID</th>
+                        <th>Incidente</th>
+                        <th>Sector</th>
+                        <th>Antigüedad</th>
+                        <th>Estado</th>
+                        <th style="text-align:center;">Detalle</th>
+                    </tr>
+                </thead>
+                <tbody id="cuerpoTabla">
+                    <tr>
+                        <td colspan="7" class="tabla-vacia">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            Cargando incidentes…
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
+
+        <div class="footer-link">
+            <a href="{% url 'Lista-Incidentes-E' %}">
+                <i class="fas fa-list"></i> Ver todos los incidentes
+                <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+
     </main>
+
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3><i class="fas fa-circle-info"></i> Detalle del incidente</h3>
+                <button class="modal-close" id="modalCloseBtn" type="button">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button class="btn-cerrar" id="modalCerrarBtn" type="button">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="lightbox" id="lightbox">
+        <button class="lightbox-close" id="lightboxClose" type="button">&times;</button>
+        <img src="" alt="Evidencia ampliada">
+    </div>
+
+    <script>
+        window.ENC_CFG = {
+            urlDatos: "{% url 'Encargado-Datos' %}",
+            urlDetalle: "{% url 'Reportes-Detalle-A-E' pk=0 %}"
+        };
+    </script>
 
     <script>
         (function () {
-            // ---------- CARRUSEL AUTOMÁTICO ----------
-            const track = document.getElementById('carouselTrack');
-            const indicators = document.querySelectorAll('#carouselIndicators span');
-            let currentIndex = 0;
-            let interval;
+            'use strict';
 
-            function goToSlide(index) {
-                if (index < 0) index = 0;
-                if (index >= indicators.length) index = indicators.length - 1;
-                currentIndex = index;
-                track.style.transform = `translateX(-${currentIndex * 100}%)`;
-                indicators.forEach((dot, i) => {
-                    dot.classList.toggle('active', i === currentIndex);
+            const CFG = window.ENC_CFG;
+            const $ = (id) => document.getElementById(id);
+
+            function esc(v) {
+                if (v === null || v === undefined) return '—';
+                return String(v).replace(/[&<>"']/g, c => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+                }[c]));
+            }
+
+            function relTime(iso) {
+                if (!iso) return '—';
+                const d = new Date(iso);
+                if (isNaN(d.getTime())) return '—';
+                const diff = (Date.now() - d.getTime()) / 1000;
+                if (diff < 60) return 'hace ' + Math.floor(diff) + 's';
+                if (diff < 3600) return 'hace ' + Math.floor(diff / 60) + ' min';
+                if (diff < 86400) return 'hace ' + Math.floor(diff / 3600) + 'h';
+                return 'hace ' + Math.floor(diff / 86400) + 'd';
+            }
+
+            function badgePrioridad(idPrio, textoPrio) {
+                const id = Number(idPrio);
+                if (id === 5) return 'badge-prioridad-critica';
+                if (id === 4) return 'badge-prioridad-alta';
+                if (id === 3) return 'badge-prioridad-media';
+                if (id === 2 || id === 1) return 'badge-prioridad-baja';
+                const s = (textoPrio || '').toLowerCase();
+                if (s.indexOf('crit') !== -1) return 'badge-prioridad-critica';
+                if (s.indexOf('alt') !== -1) return 'badge-prioridad-alta';
+                if (s.indexOf('med') !== -1) return 'badge-prioridad-media';
+                if (s.indexOf('baj') !== -1) return 'badge-prioridad-baja';
+                return 'badge-prioridad-otra';
+            }
+
+            function badgeEstado(idEstado, textoEstado) {
+                const id = Number(idEstado);
+                if (id === 1) return 'badge-estado-pendiente';
+                if (id === 2) return 'badge-estado-revision';
+                if (id === 3) return 'badge-estado-solucion';
+                const s = (textoEstado || '').toLowerCase();
+                if (s.indexOf('pend') !== -1) return 'badge-estado-pendiente';
+                if (s.indexOf('revis') !== -1) return 'badge-estado-revision';
+                if (s.indexOf('soluc') !== -1) return 'badge-estado-solucion';
+                return 'badge-estado-default';
+            }
+
+            let estadoActual = '';
+            let mapa = null;
+
+            async function cargarDatos() {
+                try {
+                    const qs = estadoActual ? ('?estado=' + encodeURIComponent(estadoActual)) : '';
+                    const res = await fetch(CFG.urlDatos + qs, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
+                    });
+                    if (!res.ok) throw new Error('Error ' + res.status);
+                    const data = await res.json();
+                    if (!data.ok) throw new Error(data.error || 'Error en el servidor');
+                    render(data);
+                } catch (err) {
+                    console.error('[Encargado inicio]', err);
+                    $('cuerpoTabla').innerHTML =
+                        '<tr><td colspan="7" class="tabla-vacia">' +
+                        '<i class="fas fa-triangle-exclamation" style="color:#c0392b;"></i> ' +
+                        'No se pudieron cargar los datos: ' + esc(err.message) + '</td></tr>';
+                }
+            }
+
+            function render(data) {
+                $('kpi-pendiente').textContent = data.kpis.pendiente;
+                $('kpi-revision').textContent = data.kpis.revision;
+                $('kpi-solucionando').textContent = data.kpis.solucionando;
+                $('kpi-atendidos').textContent = data.kpis.atendidos_semana;
+
+                if ($('chipsRow').children.length <= 1) {
+                    (data.estados || []).forEach(e => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'chip';
+                        btn.dataset.estado = e.id;
+                        btn.innerHTML = '<i class="fas fa-tag"></i> ' + esc(e.nombre);
+                        btn.addEventListener('click', () => {
+                            estadoActual = String(e.id);
+                            marcarChipActivo();
+                            cargarDatos();
+                        });
+                        $('chipsRow').appendChild(btn);
+                    });
+                }
+                marcarChipActivo();
+
+                if (!data.cola || data.cola.length === 0) {
+                    $('cuerpoTabla').innerHTML =
+                        '<tr><td colspan="7" class="tabla-vacia">' +
+                        '<i class="fas fa-check-circle" style="color:#2ecc71;"></i>' +
+                        (estadoActual
+                            ? 'No hay incidentes con ese estado.'
+                            : '¡Buen trabajo! No tienes incidentes pendientes en este momento.') +
+                        '</td></tr>';
+                    return;
+                }
+
+                $('cuerpoTabla').innerHTML = data.cola.map(r => `
+                <tr data-id="${esc(r.id)}">
+                    <td><span class="badge ${badgePrioridad(r.id_prioridad, r.prioridad)}">${esc(r.prioridad)}</span></td>
+                    <td><strong>#${esc(r.id)}</strong></td>
+                    <td>${esc(r.incidente)}</td>
+                    <td>${esc(r.sector)}</td>
+                    <td>${relTime(r.fecha_hora)}</td>
+                    <td><span class="badge ${badgeEstado(r.id_estado, r.estado)}">${esc(r.estado)}</span></td>
+                    <td style="text-align:center;">
+                        <button class="btn-ver" data-id="${esc(r.id)}" type="button">
+                            <i class="fas fa-eye"></i> Ver
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+            }
+
+            function marcarChipActivo() {
+                $('chipsRow').querySelectorAll('.chip').forEach(c => {
+                    c.classList.toggle('activo', c.dataset.estado === estadoActual);
                 });
             }
 
-            function nextSlide() {
-                const next = (currentIndex + 1) % indicators.length;
-                goToSlide(next);
-            }
-
-            function startCarousel() {
-                if (interval) clearInterval(interval);
-                interval = setInterval(nextSlide, 4000);
-            }
-
-            // click en indicadores
-            indicators.forEach((dot) => {
-                dot.addEventListener('click', function () {
-                    const index = parseInt(this.dataset.index);
-                    goToSlide(index);
-                    startCarousel(); // reinicia el temporizador
-                });
+            $('chipsRow').firstElementChild.addEventListener('click', () => {
+                estadoActual = '';
+                marcarChipActivo();
+                cargarDatos();
             });
 
-            // Iniciar carrusel
-            goToSlide(0);
-            startCarousel();
-
-            // ---------- GENERAR RESULTADOS (GRÁFICAS) ----------
-            const resultsContainer = document.getElementById('resultsContainer');
-
-            // Datos simulados para las gráficas
-            function generateResults(municipio, sector, tipo) {
-                // Valores aleatorios para simular
-                const base = Math.floor(Math.random() * 30) + 10;
-                const variacion = Math.floor(Math.random() * 15) + 1;
-                return {
-                    total: base + variacion,
-                    activos: Math.floor((base + variacion) * 0.6),
-                    resueltos: Math.floor((base + variacion) * 0.3),
-                    pendientes: Math.floor((base + variacion) * 0.1),
-                };
+            function cerrarModal() {
+                $('modalOverlay').classList.remove('active');
+                document.body.style.overflow = '';
+                if (mapa) { try { mapa.remove(); } catch (e) { /* noop */ } mapa = null; }
             }
 
-            function renderResults() {
-                const municipio = document.getElementById('municipio').value;
-                const sector = document.getElementById('sector').value;
-                const tipo = document.getElementById('tipo').value;
+            function abrirLightbox(src) {
+                const lb = $('lightbox');
+                lb.querySelector('img').src = src;
+                lb.classList.add('active');
+            }
+            function cerrarLightbox() {
+                const lb = $('lightbox');
+                lb.classList.remove('active');
+                lb.querySelector('img').src = '';
+            }
 
-                // Simular datos basados en filtros (solo para demostración)
-                const data = generateResults(municipio, sector, tipo);
+            $('lightboxClose').addEventListener('click', cerrarLightbox);
+            $('lightbox').addEventListener('click', (ev) => {
+                if (ev.target === $('lightbox')) cerrarLightbox();
+            });
 
-                // Construir tarjetas
-                const cards = [
-                    { icon: 'fa-chart-bar', title: 'Total reportes', value: data.total, label: 'registros' },
-                    { icon: 'fa-circle-exclamation', title: 'Activos', value: data.activos, label: 'en curso' },
-                    { icon: 'fa-check-circle', title: 'Resueltos', value: data.resueltos, label: 'cerrados' },
-                    { icon: 'fa-clock', title: 'Pendientes', value: data.pendientes, label: 'en espera' },
+            // ============================================================
+            // MAPA: misma configuración exacta que lista_reportes_e.html
+            // ============================================================
+            function inicializarMapa(lat, lng) {
+                const contenedor = $('modalMapa');
+                if (!contenedor) return;
+                if (typeof L === 'undefined') {
+                    contenedor.innerHTML = '<p class="modal-vacio" style="padding:.6rem;">' +
+                        '<i class="fas fa-triangle-exclamation"></i> No se pudo cargar el mapa.</p>';
+                    return;
+                }
+
+                mapa = L.map(contenedor, { scrollWheelZoom: false }).setView([lat, lng], 16);
+
+                L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors — Tiles by OSM France'
+                }).addTo(mapa);
+
+                L.marker([lat, lng]).addTo(mapa)
+                    .bindPopup('Ubicación del incidente').openPopup();
+
+                setTimeout(function () { if (mapa) mapa.invalidateSize(); }, 250);
+            }
+            function pintarDetalle(r) {
+                if (mapa) { try { mapa.remove(); } catch (e) { /* noop */ } mapa = null; }
+
+                const filas = [
+                    ['ID', esc(r.id)],
+                    ['Reportado por', esc(r.usuario || '—')],
+                    ['Municipio', esc(r.municipio || '—')],
+                    ['Sector', esc(r.sector || '—')],
+                    ['Incidente', esc(r.incidente || '—')],
+                    ['Prioridad', '<span class="badge ' + badgePrioridad(r.id_prioridad, r.prioridad) + '">' + esc(r.prioridad) + '</span>'],
+                    ['Estado', '<span class="badge ' + badgeEstado(r.id_estado, r.estado) + '">' + esc(r.estado) + '</span>'],
+                    ['Fecha y hora', esc(r.fecha_hora ? new Date(r.fecha_hora).toLocaleString('es-HN') : '—')],
                 ];
 
-                resultsContainer.innerHTML = cards.map(card => `
-                        <div class="result-card">
-                            <div class="card-title">
-                                <i class="fas ${card.icon}"></i> ${card.title}
-                            </div>
-                            <div class="mini-chart">
-                                <i class="fas ${card.icon}"></i>
-                                <div class="value">${card.value}</div>
-                                <div class="label">${card.label}</div>
-                            </div>
-                        </div>
-                    `).join('');
+                let html = filas.map(f =>
+                    '<div class="modal-item"><span class="label">' + f[0] +
+                    '</span><span class="value">' + f[1] + '</span></div>'
+                ).join('');
 
-                // Además, agregar una tarjeta extra con "distribución por tipo" (otra gráfica)
-                const extraCard = `
-                        <div class="result-card">
-                            <div class="card-title">
-                                <i class="fas fa-chart-pie"></i> Distribución por tipo
-                            </div>
-                            <div class="mini-chart" style="flex-direction:row; flex-wrap:wrap; gap:0.6vw; justify-content:center;">
-                                <span style="background:#d71920; color:white; padding:0.3vh 1vw; border-radius:2rem; font-size:0.8rem;">Robo 35%</span>
-                                <span style="background:#f5c400; color:#1e1e1e; padding:0.3vh 1vw; border-radius:2rem; font-size:0.8rem;">Accidente 28%</span>
-                                <span style="background:#2a7faa; color:white; padding:0.3vh 1vw; border-radius:2rem; font-size:0.8rem;">Incendio 20%</span>
-                                <span style="background:#6c8b3f; color:white; padding:0.3vh 1vw; border-radius:2rem; font-size:0.8rem;">Otros 17%</span>
-                            </div>
-                        </div>
-                    `;
-                resultsContainer.insertAdjacentHTML('beforeend', extraCard);
+                html += '<div class="modal-item modal-item--full">' +
+                    '<span class="label">Descripción</span>' +
+                    '<span class="value">' + esc(r.descripcion || '—') + '</span></div>';
+
+                const tieneCoords = (r.lat !== null && r.lat !== undefined &&
+                    r.lng !== null && r.lng !== undefined);
+                html += '<div class="modal-seccion"><span class="label">Ubicación</span>';
+                html += tieneCoords
+                    ? '<div id="modalMapa" class="modal-mapa"></div>'
+                    : '<p class="modal-vacio"><i class="fas fa-location-dot"></i> Sin coordenadas registradas.</p>';
+                html += '</div>';
+
+                const evidencias = Array.isArray(r.evidencias) ? r.evidencias : [];
+                html += '<div class="modal-seccion"><span class="label">Evidencias</span>';
+                if (evidencias.length) {
+                    html += '<div class="evidencias-grid">';
+                    evidencias.forEach((src, i) => {
+                        html += '<a href="javascript:void(0)" class="evidencia-item" ' +
+                            'data-src="' + esc(src) + '" title="Click para ampliar">' +
+                            '<img src="' + esc(src) + '" alt="Evidencia ' + (i + 1) + '" ' +
+                            'loading="lazy" onerror="this.parentElement.classList.add(\'evidencia-rota\')">' +
+                            '</a>';
+                    });
+                    html += '</div>';
+                } else {
+                    html += '<p class="modal-vacio"><i class="fas fa-image"></i> Sin imágenes registradas.</p>';
+                }
+                html += '</div>';
+
+                $('modalBody').innerHTML = html;
+
+                $('modalBody').querySelectorAll('.evidencia-item').forEach(a => {
+                    a.addEventListener('click', (ev) => {
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        abrirLightbox(a.dataset.src);
+                    });
+                });
+
+                if (tieneCoords) {
+                    requestAnimationFrame(function () {
+                        inicializarMapa(Number(r.lat), Number(r.lng));
+                    });
+                }
             }
 
-            // Evento del botón consultar
-            document.getElementById('consultarBtn').addEventListener('click', renderResults);
+            async function abrirDetalle(id) {
+                $('modalBody').innerHTML =
+                    '<p style="padding:1rem;text-align:center;color:#7a6a4a;">' +
+                    '<i class="fas fa-spinner fa-spin"></i> Cargando…</p>';
+                $('modalOverlay').classList.add('active');
+                document.body.style.overflow = 'hidden';
 
-            // Render inicial
-            renderResults();
+                try {
+                    const url = CFG.urlDetalle.replace(/0\/$/, encodeURIComponent(id) + '/');
+                    const res = await fetch(url, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
+                    });
+                    if (!res.ok) throw new Error('Error ' + res.status);
+                    const data = await res.json();
+                    if (!data.ok) throw new Error(data.error || 'Error en el servidor');
+                    pintarDetalle(data.registro);
+                } catch (err) {
+                    $('modalBody').innerHTML =
+                        '<p style="padding:1rem;color:#c0392b;">' +
+                        '<i class="fas fa-circle-exclamation"></i> ' +
+                        esc('No se pudo cargar el detalle: ' + err.message) + '</p>';
+                }
+            }
 
-            // También al cambiar los selects (opcional, pero por UX se puede)
-            // No lo hacemos automático para no saturar, solo con el botón.
+            $('cuerpoTabla').addEventListener('click', (ev) => {
+                const fila = ev.target.closest('tr[data-id]');
+                if (!fila) return;
+                abrirDetalle(fila.dataset.id);
+            });
 
-            // Pequeña mejora: al cambiar los selects, se puede resetear el carrusel (opcional)
-            // pero lo dejamos así.
+            $('modalCloseBtn').addEventListener('click', cerrarModal);
+            $('modalCerrarBtn').addEventListener('click', cerrarModal);
+            $('modalOverlay').addEventListener('click', (ev) => {
+                if (ev.target === $('modalOverlay')) cerrarModal();
+            });
 
-            // Exponer función para debug (opcional)
-            window.renderResults = renderResults;
+            document.addEventListener('keydown', (ev) => {
+                if (ev.key !== 'Escape') return;
+                if ($('lightbox').classList.contains('active')) {
+                    cerrarLightbox();
+                } else if ($('modalOverlay').classList.contains('active')) {
+                    cerrarModal();
+                }
+            });
+
+            cargarDatos();
         })();
     </script>
 

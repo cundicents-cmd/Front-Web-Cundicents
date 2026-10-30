@@ -20,31 +20,7 @@ class VerMunicipios(models.Model):
     class Meta:
         managed = False
         db_table = 'ver_Municipios_Administrador'
-
-class VerReportes(models.Model):
-    id = models.BigIntegerField(primary_key=True)
-    id_usuario = models.BigIntegerField()
-    usuario = models.CharField(max_length=255)
-    id_incidente = models.BigIntegerField()
-    incidente = models.CharField(max_length=255)
-    id_municipio = models.BigIntegerField()
-    municipio = models.CharField(max_length=255)
-    id_sector = models.BigIntegerField()
-    sector = models.CharField(max_length=255)
-    id_prioridad = models.BigIntegerField()
-    tp_prioridad = models.CharField(max_length=255)
-    id_estado = models.BigIntegerField()
-    estado = models.CharField(max_length=255)
-    descripcion = models.TextField()
-    fecha_hora = models.DateTimeField()
-    ubicacion = models.CharField(max_length=255, blank=True, null=True)
-    evidencias = models.TextField(blank=True, null=True)
-
-    class Meta:
-        managed = False
-        db_table = 'ver_Reportes'
-        ordering = ['-fecha_hora']
-        
+       
 class VerHistoricoIncidentes(models.Model):
     id = models.BigIntegerField(primary_key=True)
     cc_usuario = models.CharField(max_length=255)

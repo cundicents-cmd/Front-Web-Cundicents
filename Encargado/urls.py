@@ -5,6 +5,8 @@ import Encargado.views as VE
 urlpatterns = [
     # Inicio / Dashboard de Encargado
     path('', VE.inicio_encargado, name="Encargado"), 
+    path('Datos/', VE._datos_inicio_encargado, name='Encargado-Datos'),
+
 
     #Lista de Incidentes
     path('Lista-Incidentes-E/', VE.reportes_a, name='Lista-Incidentes-E'),
